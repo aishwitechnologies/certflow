@@ -37,6 +37,7 @@ yarn-error.log*
 /prisma/*.db-journal
 
 # storage and generated files
+/public/storage/
 /public/generated/
 /public/uploads/
 /public/temp/
