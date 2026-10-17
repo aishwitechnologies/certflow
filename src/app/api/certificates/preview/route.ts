@@ -5,22 +5,25 @@ import { formatCertificateId, getOrgIdConfig } from "@/lib/id-generator";
 
 export async function POST(req: NextRequest) {
   try {
-    const { templateId, candidateData } = await req.json();
+    const { templateId, customTemplate, candidateData } = await req.json();
 
-    if (!templateId) {
-      return NextResponse.json({ error: "Template ID is required." }, { status: 400 });
+    let template: any = null;
+
+    if (customTemplate) {
+      template = customTemplate;
+    } else if (templateId) {
+      template = await prisma.certificateTemplate.findUnique({
+        where: { id: templateId },
+        include: { fields: true },
+      });
     }
-
-    const template = await prisma.certificateTemplate.findUnique({
-      where: { id: templateId },
-      include: { fields: true },
-    });
 
     if (!template) {
-      return NextResponse.json({ error: "Certificate template not found." }, { status: 404 });
+      return NextResponse.json({ error: "Certificate template not provided or found." }, { status: 400 });
     }
 
-    const orgConfig = await getOrgIdConfig(template.organizationId);
+    const org = await prisma.organization.findFirst();
+    const orgConfig = await getOrgIdConfig(template.organizationId || org?.id || "DEFAULT");
     const previewCertId = formatCertificateId(1, orgConfig, new Date());
 
     const sampleCandidate = candidateData || {
@@ -35,11 +38,11 @@ export async function POST(req: NextRequest) {
 
     const pdfBytes = await generateCertificatePdf({
       template: {
-        width: template.width,
-        height: template.height,
-        orientation: template.orientation,
-        backgroundUrl: template.backgroundUrl,
-        fields: template.fields.map((f) => ({
+        width: template.width || (template.orientation === "PORTRAIT" ? 595.28 : 841.89),
+        height: template.height || (template.orientation === "PORTRAIT" ? 841.89 : 595.28),
+        orientation: template.orientation || "LANDSCAPE",
+        backgroundUrl: template.backgroundUrl || null,
+        fields: (template.fields || []).map((f: any) => ({
           fieldKey: f.fieldKey,
           label: f.label,
           x: f.x,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Download,
   Upload,
@@ -15,9 +16,38 @@ import {
   RefreshCw,
   Eye,
   Check,
+  User,
+  ExternalLink,
+  Calendar,
+  Building,
+  GraduationCap,
+  X,
 } from "lucide-react";
 
 export default function GenerateCertificatesPage() {
+  const [generationMode, setGenerationMode] = useState<"SINGLE" | "BATCH">("SINGLE");
+
+  // Single Certificate Manual Entry State
+  const [singleForm, setSingleForm] = useState({
+    candidateName: "",
+    email: "",
+    collegeName: "",
+    department: "",
+    domain: "",
+    programId: "",
+    templateId: "",
+    startDate: "",
+    endDate: "",
+    issueDate: new Date().toISOString().slice(0, 10),
+  });
+  const [singleLoading, setSingleLoading] = useState(false);
+  const [singleError, setSingleError] = useState("");
+  const [singleResult, setSingleResult] = useState<any | null>(null);
+  const [singlePreviewUrl, setSinglePreviewUrl] = useState<string | null>(null);
+  const [singlePreviewLoading, setSinglePreviewLoading] = useState(false);
+  const [viewSinglePdfModal, setViewSinglePdfModal] = useState(false);
+
+  // Batch Wizard State
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -61,26 +91,48 @@ export default function GenerateCertificatesPage() {
 
   // Load programs and templates on mount
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("mode") === "batch") {
+        setGenerationMode("BATCH");
+      } else if (params.get("mode") === "single") {
+        setGenerationMode("SINGLE");
+      }
+    }
+
     Promise.all([
       fetch("/api/programs").then((r) => r.json()),
       fetch("/api/templates").then((r) => r.json()),
     ])
       .then(([progData, tmplData]) => {
-        if (progData.programs) {
+        let defaultProgId = "";
+        let defaultTmplId = "";
+        let defaultDomain = "";
+
+        if (progData.programs && progData.programs.length > 0) {
           setPrograms(progData.programs);
-          if (progData.programs.length > 0) {
-            setSelectedProgramId(progData.programs[0].id);
-            if (progData.programs[0].defaultTemplateId) {
-              setSelectedTemplateId(progData.programs[0].defaultTemplateId);
-            }
+          defaultProgId = progData.programs[0].id;
+          defaultDomain = progData.programs[0].domain || "";
+          setSelectedProgramId(defaultProgId);
+          if (progData.programs[0].defaultTemplateId) {
+            defaultTmplId = progData.programs[0].defaultTemplateId;
+            setSelectedTemplateId(defaultTmplId);
           }
         }
-        if (tmplData.templates) {
+        if (tmplData.templates && tmplData.templates.length > 0) {
           setTemplates(tmplData.templates);
-          if (!selectedTemplateId && tmplData.templates.length > 0) {
-            setSelectedTemplateId(tmplData.templates[0].id);
+          if (!defaultTmplId) {
+            defaultTmplId = tmplData.templates[0].id;
+            setSelectedTemplateId(defaultTmplId);
           }
         }
+
+        setSingleForm((prev) => ({
+          ...prev,
+          programId: prev.programId || defaultProgId,
+          domain: prev.domain || defaultDomain,
+          templateId: prev.templateId || defaultTmplId,
+        }));
       })
       .catch((err) => console.error("Initial load failed:", err));
   }, []);
@@ -336,15 +388,526 @@ export default function GenerateCertificatesPage() {
     }
   };
 
+  // Single Certificate Generation Handlers
+  const handleGenerateSingle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSingleError("");
+    setSingleLoading(true);
+
+    try {
+      if (!singleForm.candidateName.trim()) {
+        throw new Error("Please enter the candidate's full name.");
+      }
+      if (!singleForm.programId) {
+        throw new Error("Please select a training/internship program.");
+      }
+      if (!singleForm.templateId) {
+        throw new Error("Please select a certificate template.");
+      }
+
+      const res = await fetch("/api/certificates/single", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(singleForm),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate certificate.");
+
+      setSingleResult(data);
+    } catch (err: any) {
+      setSingleError(err.message || "Failed to issue certificate.");
+    } finally {
+      setSingleLoading(false);
+    }
+  };
+
+  const handlePreviewSingle = async () => {
+    if (!singleForm.candidateName.trim()) {
+      setSingleError("Please enter candidate name before previewing.");
+      return;
+    }
+    setSinglePreviewLoading(true);
+    setSingleError("");
+
+    try {
+      const selectedProg = programs.find((p) => p.id === singleForm.programId);
+      const res = await fetch("/api/certificates/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: singleForm.templateId || selectedTemplateId,
+          candidateData: {
+            candidateName: singleForm.candidateName,
+            programName: selectedProg?.name || "Program Name",
+            collegeName: singleForm.collegeName,
+            department: singleForm.department,
+            domain: singleForm.domain || selectedProg?.domain,
+            startDate: singleForm.startDate,
+            endDate: singleForm.endDate,
+          },
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate preview PDF");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setSinglePreviewUrl(url);
+    } catch (err: any) {
+      setSingleError(err.message);
+    } finally {
+      setSinglePreviewLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Step Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Bulk Certificate Generation</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Automated end-to-end pipeline: Spreadsheet data → Validation → Preview → Atomic IDs → PDFs → ZIP.
-        </p>
+      {/* Top Mode Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Generate Certificates</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Issue official credentials for Aishwi Technologies manually or in bulk.
+          </p>
+        </div>
+
+        <div className="flex bg-slate-100 p-1 rounded-2xl w-full sm:w-fit border border-slate-200 shrink-0">
+          <button
+            type="button"
+            onClick={() => setGenerationMode("SINGLE")}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              generationMode === "SINGLE"
+                ? "bg-white text-indigo-600 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <User className="w-3.5 h-3.5" /> Single Certificate
+          </button>
+          <button
+            type="button"
+            onClick={() => setGenerationMode("BATCH")}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              generationMode === "BATCH"
+                ? "bg-white text-indigo-600 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Bulk Excel / Google Sheets
+          </button>
+        </div>
       </div>
+
+      {/* MODE 1: SINGLE CERTIFICATE MANUAL ISSUANCE */}
+      {generationMode === "SINGLE" && (
+        <div className="space-y-6">
+          {singleResult ? (
+            /* Success Card After Generation */
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
+                      Certificate Issued Successfully!
+                    </span>
+                    <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                      {singleResult.certificate.candidateName}
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs text-slate-400 block font-medium">Atomic Unique Certificate ID</span>
+                  <span className="font-mono text-xl font-extrabold text-indigo-600 block">
+                    {singleResult.certificateId}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Actions Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setViewSinglePdfModal(true)}
+                  className="p-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-left transition group"
+                >
+                  <Eye className="w-6 h-6 text-indigo-600 mb-2 group-hover:scale-110 transition" />
+                  <span className="text-xs font-bold text-slate-900 block">View Certificate</span>
+                  <span className="text-[11px] text-slate-500">Preview generated PDF in modal</span>
+                </button>
+
+                <a
+                  href={singleResult.downloadUrl}
+                  className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition group"
+                >
+                  <Download className="w-6 h-6 text-slate-700 mb-2 group-hover:scale-110 transition" />
+                  <span className="text-xs font-bold text-slate-900 block">Download PDF</span>
+                  <span className="text-[11px] text-slate-500">Download candidate copy</span>
+                </a>
+
+                <Link
+                  href={singleResult.verificationUrl}
+                  target="_blank"
+                  className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition group"
+                >
+                  <ExternalLink className="w-6 h-6 text-emerald-600 mb-2 group-hover:scale-110 transition" />
+                  <span className="text-xs font-bold text-slate-900 block">Public Verification</span>
+                  <span className="text-[11px] text-slate-500">Verify via ID without QR</span>
+                </Link>
+              </div>
+
+              {/* Embedded Certificate Preview Frame */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-700">Official Certificate PDF:</span>
+                  <a
+                    href={singleResult.viewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
+                  >
+                    Open in Full Tab <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+                <iframe
+                  src={singleResult.viewUrl}
+                  title="Issued Certificate"
+                  className="w-full h-[52vh] rounded-xl border border-slate-300 shadow-inner bg-white"
+                />
+              </div>
+
+              {/* Issue Another Button */}
+              <div className="flex justify-between items-center pt-2">
+                <Link
+                  href="/dashboard/certificates"
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  ← Go to Certificates Registry
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSingleResult(null);
+                    setSinglePreviewUrl(null);
+                    setSingleForm((prev) => ({
+                      ...prev,
+                      candidateName: "",
+                      email: "",
+                      collegeName: "",
+                      department: "",
+                    }));
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition"
+                >
+                  + Issue Another Certificate
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Manual Details Form */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Form Column (7 cols) */}
+              <form onSubmit={handleGenerateSingle} className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight">Candidate & Certificate Details</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Fill in candidate details to issue an official Aishwi Technologies certificate.
+                  </p>
+                </div>
+
+                {singleError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{singleError}</span>
+                  </div>
+                )}
+
+                {/* Program & Template Selectors */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Program / Internship *
+                    </label>
+                    <select
+                      value={singleForm.programId}
+                      onChange={(e) => {
+                        const pid = e.target.value;
+                        const prog = programs.find((p) => p.id === pid);
+                        setSingleForm((prev) => ({
+                          ...prev,
+                          programId: pid,
+                          domain: prog?.domain || prev.domain,
+                          templateId: prog?.defaultTemplateId || prev.templateId,
+                        }));
+                      }}
+                      required
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">-- Select Program --</option>
+                      {programs.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Certificate Template *
+                    </label>
+                    <select
+                      value={singleForm.templateId}
+                      onChange={(e) => setSingleForm({ ...singleForm, templateId: e.target.value })}
+                      required
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">-- Select Template --</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Candidate Name & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Candidate Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={singleForm.candidateName}
+                      onChange={(e) => setSingleForm({ ...singleForm, candidateName: e.target.value })}
+                      placeholder="e.g. Ramesh Varma"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Email Address (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={singleForm.email}
+                      onChange={(e) => setSingleForm({ ...singleForm, email: e.target.value })}
+                      placeholder="e.g. candidate@gmail.com"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* College & Department */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      College / University
+                    </label>
+                    <input
+                      type="text"
+                      value={singleForm.collegeName}
+                      onChange={(e) => setSingleForm({ ...singleForm, collegeName: e.target.value })}
+                      placeholder="e.g. ABC College of Engineering"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Department / Specialization
+                    </label>
+                    <input
+                      type="text"
+                      value={singleForm.department}
+                      onChange={(e) => setSingleForm({ ...singleForm, department: e.target.value })}
+                      placeholder="e.g. Computer Science & Engineering"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Domain & Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Domain
+                    </label>
+                    <input
+                      type="text"
+                      value={singleForm.domain}
+                      onChange={(e) => setSingleForm({ ...singleForm, domain: e.target.value })}
+                      placeholder="e.g. Artificial Intelligence"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={singleForm.startDate}
+                      onChange={(e) => setSingleForm({ ...singleForm, startDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={singleForm.endDate}
+                      onChange={(e) => setSingleForm({ ...singleForm, endDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Issue Date */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Issue Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={singleForm.issueDate}
+                    onChange={(e) => setSingleForm({ ...singleForm, issueDate: e.target.value })}
+                    className="w-full sm:w-1/2 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={handlePreviewSingle}
+                    disabled={singlePreviewLoading}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {singlePreviewLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Rendering...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3.5 h-3.5" /> Preview Certificate
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={singleLoading}
+                    className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {singleLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Issuing Certificate...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 text-amber-300" /> Generate & Issue Certificate
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Preview Column (5 cols) */}
+              <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Eye className="w-4 h-4 text-indigo-600" /> Certificate Output Preview
+                    </span>
+                    {singlePreviewUrl && (
+                      <a
+                        href={singlePreviewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-semibold text-indigo-600 hover:underline"
+                      >
+                        Open Full Tab ↗
+                      </a>
+                    )}
+                  </div>
+
+                  {singlePreviewUrl ? (
+                    <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-md">
+                      <iframe
+                        src={singlePreviewUrl}
+                        title="Certificate Live Preview"
+                        className="w-full h-80 rounded-2xl bg-white"
+                      />
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50/60 my-6">
+                      <Sparkles className="w-8 h-8 text-indigo-400 mx-auto mb-2 opacity-80" />
+                      <p className="text-xs font-bold text-slate-700">Live Preview Available</p>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
+                        Type candidate details on the left and click <strong>Preview Certificate</strong> to view the exact rendered PDF before issuing.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+                  <p>• <strong>Atomic Sequence:</strong> Automatically reserves next sequential ID (e.g. AT-10-XX).</p>
+                  <p>• <strong>Verification:</strong> Instantly verified on public portal via ID.</p>
+                  <p>• <strong>Format:</strong> High-definition vector PDF with vector crest.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal to view single PDF */}
+          {viewSinglePdfModal && singleResult && (
+            <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden">
+                <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                  <span className="font-bold text-sm">
+                    {singleResult.certificate.candidateName} — {singleResult.certificateId}
+                  </span>
+                  <button
+                    onClick={() => setViewSinglePdfModal(false)}
+                    className="p-1 rounded text-slate-400 hover:text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4 bg-slate-100 flex-1 overflow-hidden">
+                  <iframe
+                    src={singleResult.viewUrl}
+                    className="w-full h-[65vh] rounded-2xl bg-white border border-slate-300"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODE 2: BATCH WIZARD PIPELINE */}
+      {generationMode === "BATCH" && (
+        <div className="space-y-6">
+          {/* Step Header */}
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Bulk Spreadsheet Generation</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Automated end-to-end pipeline: Spreadsheet data → Validation → Preview → Atomic IDs → PDFs → Bulk ZIP.
+            </p>
+          </div>
 
       {/* Wizard Progress Stepper */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -994,6 +1557,8 @@ export default function GenerateCertificatesPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
         </div>
       )}
     </div>

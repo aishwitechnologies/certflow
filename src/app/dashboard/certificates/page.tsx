@@ -13,6 +13,10 @@ import {
   Edit3,
   X,
   FileSpreadsheet,
+  Eye,
+  Plus,
+  Sparkles,
+  Printer,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -26,6 +30,7 @@ export default function CertificatesPage() {
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
 
   // Modals state
+  const [viewModalCert, setViewModalCert] = useState<any | null>(null);
   const [revokeModalCert, setRevokeModalCert] = useState<any | null>(null);
   const [revokeReason, setRevokeReason] = useState("");
   const [regenerateModalCert, setRegenerateModalCert] = useState<any | null>(null);
@@ -117,15 +122,23 @@ export default function CertificatesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Certificates Registry</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Search, download, regenerate, and manage all issued credentials.
+            Search, view, download, regenerate, and manage all issued credentials.
           </p>
         </div>
-        <Link
-          href="/dashboard/certificates/generate"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-md shadow-indigo-600/20 transition self-start"
-        >
-          + Generate New Batch
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/dashboard/certificates/generate?mode=single"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" /> Issue Single Certificate
+          </Link>
+          <Link
+            href="/dashboard/certificates/generate"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md shadow-indigo-600/20 transition"
+          >
+            <Sparkles className="w-4 h-4" /> Generate Batch
+          </Link>
+        </div>
       </div>
 
       {/* Filters & Search Toolbar */}
@@ -227,23 +240,28 @@ export default function CertificatesPage() {
                       {cert.verificationCount}
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {cert.pdfPath && (
-                          <a
-                            href={cert.pdfPath}
-                            target="_blank"
-                            title="Download PDF"
-                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-indigo-600"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </a>
-                        )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setViewModalCert(cert)}
+                          title="View Certificate (Admin Preview)"
+                          className="p-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 transition"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        <a
+                          href={`/api/certificates/${cert.id}/pdf?download=true`}
+                          title="Download PDF"
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-indigo-600 transition"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </a>
 
                         <Link
                           href={`/verify/${cert.certificateId}`}
                           target="_blank"
                           title="Public Verification"
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-indigo-600"
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-indigo-600 transition"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Link>
@@ -427,6 +445,147 @@ export default function CertificatesPage() {
               >
                 {actionLoading ? "Regenerating..." : "Regenerate PDF"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Certificate Viewer Modal */}
+      {viewModalCert && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[94vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-sm text-indigo-400">
+                      {viewModalCert.certificateId}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        viewModalCert.status === "VALID"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                      }`}
+                    >
+                      {viewModalCert.status}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-white truncate max-w-md">
+                    {viewModalCert.candidateName} — {viewModalCert.program?.name || "Program"}
+                  </h3>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/api/certificates/${viewModalCert.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Open in new window"
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-xs font-medium flex items-center gap-1"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">New Tab</span>
+                </a>
+
+                <a
+                  href={`/api/certificates/${viewModalCert.id}/pdf?download=true`}
+                  title="Download PDF"
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-xs font-medium flex items-center gap-1"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Download</span>
+                </a>
+
+                <button
+                  onClick={() => setViewModalCert(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: Embedded PDF Iframe & Info */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-100">
+              {/* PDF Viewer Frame */}
+              <div className="bg-white rounded-2xl border border-slate-300 shadow-md overflow-hidden">
+                <iframe
+                  src={`/api/certificates/${viewModalCert.id}/pdf`}
+                  title="Certificate PDF Preview"
+                  className="w-full h-[58vh] rounded-2xl"
+                />
+              </div>
+
+              {/* Certificate Metadata Card */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Candidate Name</span>
+                  <span className="font-bold text-slate-800">{viewModalCert.candidateName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">College / Institution</span>
+                  <span className="font-semibold text-slate-700">{viewModalCert.collegeName || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Department</span>
+                  <span className="font-semibold text-slate-700">{viewModalCert.department || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Domain / Specialization</span>
+                  <span className="font-semibold text-slate-700">{viewModalCert.domain || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Program</span>
+                  <span className="font-semibold text-slate-700">{viewModalCert.program?.name || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Issue Date</span>
+                  <span className="font-semibold text-slate-700">{formatDate(viewModalCert.issueDate)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Public Verifications</span>
+                  <span className="font-bold text-indigo-600 font-mono">{viewModalCert.verificationCount} times</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Verification Link</span>
+                  <Link
+                    href={`/verify/${viewModalCert.certificateId}`}
+                    target="_blank"
+                    className="text-indigo-600 hover:underline font-semibold font-mono"
+                  >
+                    /verify/{viewModalCert.certificateId} ↗
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500">
+                Official issued certificate by <strong>Aishwi Technologies</strong>
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewModalCert(null)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 transition"
+                >
+                  Close Viewer
+                </button>
+                <a
+                  href={`/api/certificates/${viewModalCert.id}/pdf?download=true`}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download Certificate
+                </a>
+              </div>
             </div>
           </div>
         </div>

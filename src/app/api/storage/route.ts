@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
 
     const isPdf = safeFilename.endsWith(".pdf");
     const isZip = safeFilename.endsWith(".zip");
+    const isInline = searchParams.get("inline") === "true";
 
     const contentType = isPdf
       ? "application/pdf"
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${safeFilename}"`,
+        "Content-Disposition": `${isInline ? "inline" : "attachment"}; filename="${safeFilename}"`,
         "Cache-Control": "public, max-age=3600",
       },
     });

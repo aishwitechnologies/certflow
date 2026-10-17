@@ -41,3 +41,4 @@ yarn-error.log*
 /public/generated/
 /public/uploads/
 /public/temp/
+*.tsbuildinfo
