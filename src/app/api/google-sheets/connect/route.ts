@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     const response = await fetch(exportUrl, {
       headers: {
-        "User-Agent": "CertFlow-Automation/1.0",
+        "User-Agent": "Aishwi-Technologies-Automation/1.0",
       },
     });
 

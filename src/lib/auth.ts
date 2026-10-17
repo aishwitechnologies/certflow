@@ -3,8 +3,8 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "certflow-default-secret-change-in-production";
-export const AUTH_COOKIE_NAME = "certflow_auth_token";
+const JWT_SECRET = process.env.JWT_SECRET || "aishwi-technologies-secret-key-prod";
+export const AUTH_COOKIE_NAME = "aishwi_auth_token";
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "VIEWER";
 

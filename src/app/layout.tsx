@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CertFlow — Certificate Automation & Verification Platform",
-  description: "Enterprise bulk certificate automation, generation, and public ID verification platform",
+  title: "Aishwi Technologies — Certificate Automation & Verification Platform",
+  description: "Official certificate automation, bulk generation, and credential verification portal for Aishwi Technologies.",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({

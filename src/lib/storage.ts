@@ -3,7 +3,7 @@ import path from "path";
 
 // In Vercel serverless, /tmp is writable. In local development, public/generated is writable.
 const STORAGE_ROOT = process.env.VERCEL
-  ? path.join("/tmp", "certflow-storage")
+  ? path.join("/tmp", "aishwi-storage")
   : path.join(process.cwd(), "public", "storage");
 
 // Ensure base directories exist

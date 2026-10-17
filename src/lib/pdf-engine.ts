@@ -175,34 +175,54 @@ export async function generateCertificatePdf(params: RenderCertificateParams): P
   // Draw Header / Title defaults if no custom template fields specify title
   const hasTitleField = template.fields.some((f) => f.fieldKey === "TITLE");
   if (!hasTitleField) {
-    const orgTitle = data.ORGANIZATION_NAME || "EXCELLENCE IN TECHNOLOGY";
-    const titleWidth = fontHelveticaBold.widthOfTextAtSize(orgTitle, 16);
+    let logoDrawn = false;
+    try {
+      const logoPath = path.join(process.cwd(), "public", "logo.png");
+      if (fs.existsSync(logoPath)) {
+        const logoBytes = fs.readFileSync(logoPath);
+        const logoImage = await pdfDoc.embedPng(logoBytes);
+        const logoWidth = 48;
+        const logoHeight = 48;
+        page.drawImage(logoImage, {
+          x: (width - logoWidth) / 2,
+          y: height - 85,
+          width: logoWidth,
+          height: logoHeight,
+        });
+        logoDrawn = true;
+      }
+    } catch {
+      // Continue gracefully if image loading fails
+    }
+
+    const orgTitle = data.ORGANIZATION_NAME || "AISHWI TECHNOLOGIES";
+    const titleWidth = fontHelveticaBold.widthOfTextAtSize(orgTitle, 15);
     page.drawText(orgTitle, {
       x: (width - titleWidth) / 2,
-      y: height - 80,
-      size: 16,
+      y: logoDrawn ? height - 105 : height - 80,
+      size: 15,
       font: fontHelveticaBold,
-      color: rgb(0.2, 0.25, 0.35),
+      color: rgb(0.12, 0.2, 0.35),
     });
 
     const certTitle = "CERTIFICATE OF COMPLETION";
-    const certTitleWidth = fontTimesRomanBold.widthOfTextAtSize(certTitle, 28);
+    const certTitleWidth = fontTimesRomanBold.widthOfTextAtSize(certTitle, 26);
     page.drawText(certTitle, {
       x: (width - certTitleWidth) / 2,
-      y: height - 120,
-      size: 28,
+      y: logoDrawn ? height - 138 : height - 120,
+      size: 26,
       font: fontTimesRomanBold,
       color: rgb(0.08, 0.12, 0.28),
     });
 
     const subText = "THIS IS PROUDLY PRESENTED TO";
-    const subTextWidth = fontHelvetica.widthOfTextAtSize(subText, 11);
+    const subTextWidth = fontHelvetica.widthOfTextAtSize(subText, 10.5);
     page.drawText(subText, {
       x: (width - subTextWidth) / 2,
-      y: height - 150,
-      size: 11,
+      y: logoDrawn ? height - 162 : height - 150,
+      size: 10.5,
       font: fontHelvetica,
-      color: rgb(0.5, 0.55, 0.6),
+      color: rgb(0.45, 0.5, 0.58),
     });
   }
 

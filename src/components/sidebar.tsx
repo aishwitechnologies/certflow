@@ -52,14 +52,16 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 min-h-screen">
       {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b border-slate-800">
+      <div className="h-18 flex items-center px-4 py-3 border-b border-slate-800">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
-            <Award className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="font-bold text-white text-base tracking-tight block">CertFlow</span>
-            <span className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider block">Enterprise Automation</span>
+          <img
+            src="/logo.png"
+            alt="Aishwi Technologies Logo"
+            className="w-10 h-10 rounded-xl object-contain bg-white p-0.5 shadow-md shrink-0"
+          />
+          <div className="min-w-0">
+            <span className="font-bold text-white text-sm tracking-tight block truncate">Aishwi Technologies</span>
+            <span className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider block">Cert Automation</span>
           </div>
         </Link>
       </div>

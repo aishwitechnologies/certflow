@@ -42,12 +42,14 @@ export default function DirectVerifyPage() {
       {/* Header */}
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-4 border-b border-slate-800">
         <Link href="/verify" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
-            <Award className="w-6 h-6" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Aishwi Technologies"
+            className="w-10 h-10 object-contain rounded-xl bg-white p-0.5 shadow-md"
+          />
           <div>
-            <span className="font-bold text-white text-lg tracking-tight block">CertFlow</span>
-            <span className="text-xs text-indigo-400 block font-medium">Public Verification Portal</span>
+            <span className="font-bold text-white text-lg tracking-tight block">Aishwi Technologies</span>
+            <span className="text-xs text-blue-400 block font-medium">Public Verification Portal</span>
           </div>
         </Link>
         <Link
@@ -182,7 +184,7 @@ export default function DirectVerifyPage() {
 
       {/* Footer */}
       <footer className="max-w-4xl mx-auto w-full text-center text-xs text-slate-500 py-4">
-        Protected by CertFlow Anti-Tamper Verification Engine • Zero QR dependency • Powered by Atomic Sequence ID
+        Protected by Aishwi Technologies Anti-Tamper Verification Engine • Zero QR dependency • Powered by Atomic Sequence ID
       </footer>
     </div>
   );

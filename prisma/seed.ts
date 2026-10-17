@@ -4,17 +4,21 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding CertFlow database...");
+  console.log("Seeding Aishwi Technologies database...");
 
   // 1. Create Organization
   const org = await prisma.organization.upsert({
     where: { code: "DEFAULT" },
-    update: {},
+    update: {
+      name: "Aishwi Technologies",
+      website: "https://aishwitechnologies.com",
+      verificationUrl: "https://certflow-pearl.vercel.app/verify",
+    },
     create: {
-      name: "Acme Tech Innovations",
+      name: "Aishwi Technologies",
       code: "DEFAULT",
-      website: "https://acmetech.example.com",
-      verificationUrl: "http://localhost:3000/verify",
+      website: "https://aishwitechnologies.com",
+      verificationUrl: "https://certflow-pearl.vercel.app/verify",
     },
   });
 
@@ -51,39 +55,53 @@ async function main() {
   const operatorPasswordHash = await bcrypt.hash("Operator@123456", 10);
   const viewerPasswordHash = await bcrypt.hash("Viewer@123456", 10);
 
-  const superAdmin = await prisma.user.upsert({
-    where: { email: "admin@certflow.com" },
-    update: { passwordHash: adminPasswordHash, role: "SUPER_ADMIN" },
+  // Aishwi Technologies Official Accounts
+  await prisma.user.upsert({
+    where: { email: "admin@aishwitechnologies.com" },
+    update: { passwordHash: adminPasswordHash, role: "SUPER_ADMIN", name: "Aishwi Super Admin" },
     create: {
       organizationId: org.id,
-      name: "System Super Admin",
-      email: "admin@certflow.com",
+      name: "Aishwi Super Admin",
+      email: "admin@aishwitechnologies.com",
       passwordHash: adminPasswordHash,
       role: "SUPER_ADMIN",
     },
   });
 
   await prisma.user.upsert({
-    where: { email: "operator@certflow.com" },
-    update: { passwordHash: operatorPasswordHash, role: "OPERATOR" },
+    where: { email: "operator@aishwitechnologies.com" },
+    update: { passwordHash: operatorPasswordHash, role: "OPERATOR", name: "Aishwi Operations" },
     create: {
       organizationId: org.id,
-      name: "Operations Staff",
-      email: "operator@certflow.com",
+      name: "Aishwi Operations",
+      email: "operator@aishwitechnologies.com",
       passwordHash: operatorPasswordHash,
       role: "OPERATOR",
     },
   });
 
   await prisma.user.upsert({
-    where: { email: "viewer@certflow.com" },
-    update: { passwordHash: viewerPasswordHash, role: "VIEWER" },
+    where: { email: "viewer@aishwitechnologies.com" },
+    update: { passwordHash: viewerPasswordHash, role: "VIEWER", name: "Aishwi Auditor" },
     create: {
       organizationId: org.id,
-      name: "Audit Viewer",
-      email: "viewer@certflow.com",
+      name: "Aishwi Auditor",
+      email: "viewer@aishwitechnologies.com",
       passwordHash: viewerPasswordHash,
       role: "VIEWER",
+    },
+  });
+
+  // Backward-compatible fallback accounts
+  await prisma.user.upsert({
+    where: { email: "admin@certflow.com" },
+    update: { passwordHash: adminPasswordHash, role: "SUPER_ADMIN" },
+    create: {
+      organizationId: org.id,
+      name: "Admin User",
+      email: "admin@certflow.com",
+      passwordHash: adminPasswordHash,
+      role: "SUPER_ADMIN",
     },
   });
 
@@ -317,7 +335,7 @@ async function main() {
     },
   });
 
-  console.log("Seeding complete! Admin user: admin@certflow.com / Admin@123456");
+  console.log("Seeding complete! Admin user: admin@aishwitechnologies.com / Admin@123456");
 }
 
 main()

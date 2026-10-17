@@ -47,10 +47,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 mb-4">
-          <Award className="w-8 h-8" />
+        <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-xl mb-4">
+          <img
+            src="/logo.png"
+            alt="Aishwi Technologies"
+            className="w-16 h-16 object-contain"
+          />
         </div>
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">CertFlow</h2>
+        <h2 className="text-3xl font-extrabold text-white tracking-tight">Aishwi Technologies</h2>
+        <p className="mt-1 text-xs uppercase tracking-widest font-semibold text-blue-400">
+          Empowering Tomorrow, Innovating Today
+        </p>
         <p className="mt-2 text-sm text-slate-400">
           Certificate Automation & Public Verification Platform
         </p>
@@ -80,7 +87,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                  placeholder="admin@certflow.com"
+                  placeholder="admin@aishwitechnologies.com"
                 />
               </div>
             </div>
@@ -127,21 +134,21 @@ export default function LoginPage() {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => fillCredentials("admin@certflow.com", "Admin@123456")}
+                onClick={() => fillCredentials("admin@aishwitechnologies.com", "Admin@123456")}
                 className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600 font-medium transition text-center"
               >
                 Super Admin
               </button>
               <button
                 type="button"
-                onClick={() => fillCredentials("operator@certflow.com", "Operator@123456")}
+                onClick={() => fillCredentials("operator@aishwitechnologies.com", "Operator@123456")}
                 className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600 font-medium transition text-center"
               >
                 Operator
               </button>
               <button
                 type="button"
-                onClick={() => fillCredentials("viewer@certflow.com", "Viewer@123456")}
+                onClick={() => fillCredentials("viewer@aishwitechnologies.com", "Viewer@123456")}
                 className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600 font-medium transition text-center"
               >
                 Viewer

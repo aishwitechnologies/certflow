@@ -18,9 +18,14 @@ export function Header() {
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">
-          {user?.organization?.name || "Acme Tech Innovations"}
+      <div className="flex items-center gap-2.5">
+        <img
+          src="/logo.png"
+          alt="Aishwi Technologies"
+          className="w-7 h-7 object-contain rounded"
+        />
+        <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full">
+          {user?.organization?.name || "Aishwi Technologies"}
         </span>
       </div>
 
