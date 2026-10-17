@@ -163,18 +163,6 @@ async function main() {
         alignment: "center",
       },
       {
-        fieldKey: "COLLEGE_SUBTITLE",
-        label: "College & Affiliation",
-        x: 420.94,
-        y: 260,
-        fontSize: 12,
-        fontFamily: "Helvetica",
-        fontWeight: "normal",
-        color: "#64748b",
-        alignment: "center",
-        staticValue: "from {{COLLEGE_NAME}} ({{DEPARTMENT}})",
-      },
-      {
         fieldKey: "DATES_TEXT",
         label: "Tenure Statement",
         x: 420.94,

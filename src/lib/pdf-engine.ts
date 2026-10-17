@@ -228,17 +228,36 @@ export async function generateCertificatePdf(params: RenderCertificateParams): P
 
   // Render each field
   for (const field of template.fields) {
+    // Exclude college name from certificate
+    const key = field.fieldKey.replace(/[{}]/g, "").toUpperCase();
+    if (
+      key === "COLLEGE_NAME" ||
+      key === "COLLEGE_SUBTITLE" ||
+      field.label?.toLowerCase().includes("college")
+    ) {
+      continue;
+    }
+
     let textToRender = "";
 
     if (field.staticValue) {
-      textToRender = field.staticValue;
+      textToRender = field.staticValue
+        .replace(/from\s+\{\{COLLEGE_NAME\}\}\s*(\(\{\{DEPARTMENT\}\}\))?/gi, "")
+        .replace(/\{\{COLLEGE_NAME\}\}/gi, "")
+        .trim();
+
+      // Replace dynamic placeholders in static strings if present
+      for (const [k, v] of Object.entries(data)) {
+        if (v !== undefined && v !== null) {
+          textToRender = textToRender.replace(new RegExp(`\\{\\{${k}\\}\\}`, "gi"), String(v));
+        }
+      }
     } else {
       // Resolve dynamic placeholder
-      const key = field.fieldKey.replace(/[{}]/g, "").toUpperCase();
       textToRender = data[key] !== undefined && data[key] !== null ? String(data[key]) : "";
     }
 
-    if (!textToRender) continue;
+    if (!textToRender.trim()) continue;
 
     // Pick font
     let font: PDFFont = fontHelvetica;

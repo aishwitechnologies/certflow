@@ -704,24 +704,11 @@ export default function GenerateCertificatesPage() {
                   </div>
                 </div>
 
-                {/* College & Department */}
+                {/* Department & Domain */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      College / University
-                    </label>
-                    <input
-                      type="text"
-                      value={singleForm.collegeName}
-                      onChange={(e) => setSingleForm({ ...singleForm, collegeName: e.target.value })}
-                      placeholder="e.g. ABC College of Engineering"
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Department / Specialization
+                      Department / Specialization (Optional)
                     </label>
                     <input
                       type="text"
@@ -731,13 +718,10 @@ export default function GenerateCertificatesPage() {
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
-                </div>
 
-                {/* Domain & Dates */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Domain
+                      Domain / Track (Optional)
                     </label>
                     <input
                       type="text"
@@ -747,7 +731,10 @@ export default function GenerateCertificatesPage() {
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
+                </div>
 
+                {/* Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Start Date
@@ -771,20 +758,19 @@ export default function GenerateCertificatesPage() {
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
-                </div>
 
-                {/* Issue Date */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Issue Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={singleForm.issueDate}
-                    onChange={(e) => setSingleForm({ ...singleForm, issueDate: e.target.value })}
-                    className="w-full sm:w-1/2 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Issue Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={singleForm.issueDate}
+                      onChange={(e) => setSingleForm({ ...singleForm, issueDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
 
                 {/* Actions */}
