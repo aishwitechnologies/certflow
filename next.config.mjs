@@ -5,7 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:/tmp/dev.db";
+  process.env.DATABASE_URL = "postgresql://postgres:password@localhost:5432/certflow?sslmode=disable";
 }
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "certflow-default-production-session-secret-2026";
