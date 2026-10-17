@@ -76,6 +76,7 @@ model CertificateTemplate {
   certificateType String      @default("INTERNSHIP")
   description    String?
   backgroundUrl  String?      // Background image path or base64
+  signatureUrl   String?      // Signature image path or base64
   pageSize       String       @default("A4") // A4, LETTER, CUSTOM
   orientation    String       @default("LANDSCAPE") // LANDSCAPE, PORTRAIT
   width          Float        @default(841.89) // A4 landscape pts

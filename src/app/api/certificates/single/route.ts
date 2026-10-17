@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       startDate,
       endDate,
       issueDate,
+      signatureUrl,
     } = body;
 
     if (!candidateName?.trim()) {
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
         height: template.height,
         orientation: template.orientation,
         backgroundUrl: template.backgroundUrl,
+        signatureUrl: signatureUrl || template.signatureUrl,
         fields: template.fields.map((f) => ({
           fieldKey: f.fieldKey,
           label: f.label,
@@ -134,6 +136,7 @@ export async function POST(req: NextRequest) {
         END_DATE: formatDateStr(endDate),
         ISSUE_DATE: formatDateStr(issueDateObj),
         ORGANIZATION_NAME: program.organization?.name || "AISHWI TECHNOLOGIES",
+        SIGNATURE_URL: signatureUrl || template.signatureUrl,
       },
     });
 

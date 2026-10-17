@@ -25,6 +25,7 @@ import {
   Type,
   Palette,
   Image as ImageIcon,
+  PenTool,
 } from "lucide-react";
 
 interface FieldConfig {
@@ -122,6 +123,7 @@ export default function TemplatesPage() {
   const [description, setDescription] = useState("Official verified completion certificate");
   const [orientation, setOrientation] = useState<"LANDSCAPE" | "PORTRAIT">("LANDSCAPE");
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
   const [selectedFieldIndex, setSelectedFieldIndex] = useState<number>(0);
   const [saving, setSaving] = useState(false);
@@ -133,6 +135,7 @@ export default function TemplatesPage() {
   const canvasHeight = orientation === "PORTRAIT" ? 841.89 : 595.28;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTemplates = () => {
     setLoading(true);
@@ -159,6 +162,7 @@ export default function TemplatesPage() {
     setDescription("Official certificate template designed for Aishwi Technologies");
     setOrientation("LANDSCAPE");
     setBackgroundUrl(null);
+    setSignatureUrl(null);
     setFields(JSON.parse(JSON.stringify(DEFAULT_FIELDS)));
     setSelectedFieldIndex(0);
     setPdfPreviewBlob(null);
@@ -173,6 +177,7 @@ export default function TemplatesPage() {
     setDescription(tmpl.description || "");
     setOrientation(tmpl.orientation || "LANDSCAPE");
     setBackgroundUrl(tmpl.backgroundUrl || null);
+    setSignatureUrl(tmpl.signatureUrl || null);
     if (tmpl.fields && tmpl.fields.length > 0) {
       setFields(
         tmpl.fields.map((f: any) => ({
@@ -212,6 +217,24 @@ export default function TemplatesPage() {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       setBackgroundUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload authorized signature image
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (PNG or JPG) for the signature.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setSignatureUrl(dataUrl);
     };
     reader.readAsDataURL(file);
   };
@@ -264,6 +287,7 @@ export default function TemplatesPage() {
             height: canvasHeight,
             orientation,
             backgroundUrl,
+            signatureUrl,
             fields,
           },
           candidateData: {
@@ -274,6 +298,7 @@ export default function TemplatesPage() {
             domain: "Machine Learning & Deep Learning",
             startDate: "01/10/2026",
             endDate: "31/10/2026",
+            signatureUrl,
           },
         }),
       });
@@ -306,6 +331,7 @@ export default function TemplatesPage() {
         description,
         orientation,
         backgroundUrl,
+        signatureUrl,
         fields,
       };
 
@@ -378,15 +404,20 @@ export default function TemplatesPage() {
                 {tmpl.description || "Official certificate template with configurable coordinates."}
               </p>
 
-              {/* Background badge */}
-              <div className="mt-3 flex items-center gap-2">
+              {/* Background & Signature badges */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {tmpl.backgroundUrl ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    <ImageIcon className="w-3 h-3" /> Custom Uploaded Background
+                    <ImageIcon className="w-3 h-3" /> Custom Background
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
-                    <Layers className="w-3 h-3" /> Elegant Vector Frame
+                    <Layers className="w-3 h-3" /> Vector Frame
+                  </span>
+                )}
+                {tmpl.signatureUrl && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                    <PenTool className="w-3 h-3" /> Authorized Sign
                   </span>
                 )}
               </div>
@@ -556,7 +587,74 @@ export default function TemplatesPage() {
                   )}
                 </div>
 
-                {/* 3. Fields List */}
+                {/* 3. Upload Authorized Signature */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <PenTool className="w-4 h-4 text-indigo-600" /> Authorized Sign
+                    </h3>
+                    {signatureUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setSignatureUrl(null)}
+                        className="text-[11px] text-rose-600 hover:underline font-semibold"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={signatureInputRef}
+                    onChange={handleSignatureUpload}
+                    accept="image/png, image/jpeg, image/jpg"
+                    className="hidden"
+                  />
+
+                  {signatureUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-300 bg-white p-3 flex flex-col items-center justify-center group">
+                      <img
+                        src={signatureUrl}
+                        alt="Authorized Signature"
+                        className="h-14 max-w-full object-contain"
+                      />
+                      <div className="w-28 border-t border-slate-400 mt-2" />
+                      <span className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">
+                        Authorized Signatory
+                      </span>
+                      <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => signatureInputRef.current?.click()}
+                          className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-semibold shadow"
+                        >
+                          Change Signature
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSignatureUrl(null)}
+                          className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold shadow"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => signatureInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-4 text-center cursor-pointer bg-white transition hover:bg-indigo-50/20"
+                    >
+                      <PenTool className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
+                      <p className="text-xs font-bold text-slate-700">Upload Authorized Signature</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        PNG or JPG (transparent background recommended). Will render on certificate.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Fields List */}
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -918,6 +1016,28 @@ export default function TemplatesPage() {
                         </div>
                       );
                     })}
+
+                    {/* Render Signature if uploaded */}
+                    {signatureUrl && (
+                      <div
+                        className="absolute z-20 pointer-events-none flex flex-col items-center"
+                        style={{
+                          bottom: "12%",
+                          right: "8%",
+                          width: "120px",
+                        }}
+                      >
+                        <img
+                          src={signatureUrl}
+                          alt="Authorized Signature"
+                          className="max-h-12 max-w-[120px] object-contain drop-shadow"
+                        />
+                        <div className="w-24 border-t border-slate-700 mt-1" />
+                        <span className="text-[8px] font-bold text-slate-700 tracking-wider uppercase mt-0.5">
+                          Authorized Signatory
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Rendered PDF Modal Viewer if generated */}

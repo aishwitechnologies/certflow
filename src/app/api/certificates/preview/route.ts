@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
         height: template.height || (template.orientation === "PORTRAIT" ? 841.89 : 595.28),
         orientation: template.orientation || "LANDSCAPE",
         backgroundUrl: template.backgroundUrl || null,
+        signatureUrl: candidateData?.signatureUrl || template.signatureUrl || null,
         fields: (template.fields || []).map((f: any) => ({
           fieldKey: f.fieldKey,
           label: f.label,
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
           month: "long",
           year: "numeric",
         }),
+        SIGNATURE_URL: candidateData?.signatureUrl || template.signatureUrl || null,
       },
     });
 

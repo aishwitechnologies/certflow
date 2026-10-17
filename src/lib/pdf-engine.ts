@@ -23,6 +23,7 @@ export interface RenderCertificateParams {
     height: number;
     orientation: string;
     backgroundUrl?: string | null;
+    signatureUrl?: string | null;
     fields: CertificateFieldData[];
   };
   data: {
@@ -37,6 +38,7 @@ export interface RenderCertificateParams {
     DURATION?: string;
     COLLEGE_NAME?: string;
     DEPARTMENT?: string;
+    SIGNATURE_URL?: string | null;
     [key: string]: any;
   };
 }
@@ -313,6 +315,59 @@ export async function generateCertificatePdf(params: RenderCertificateParams): P
     font: fontHelvetica,
     color: rgb(0.4, 0.45, 0.55),
   });
+
+  // Render Authorized Signature image if provided
+  const sigSource =
+    data.SIGNATURE_URL ||
+    template.signatureUrl ||
+    template.fields.find((f) => f.fieldKey === "SIGNATURE" && f.staticValue)?.staticValue;
+
+  if (sigSource) {
+    try {
+      let sigImage: any = null;
+      if (sigSource.startsWith("data:image/png;base64,")) {
+        const b64 = sigSource.replace("data:image/png;base64,", "");
+        sigImage = await pdfDoc.embedPng(Buffer.from(b64, "base64"));
+      } else if (
+        sigSource.startsWith("data:image/jpeg;base64,") ||
+        sigSource.startsWith("data:image/jpg;base64,")
+      ) {
+        const b64 = sigSource.replace(/^data:image\/jpe?g;base64,/, "");
+        sigImage = await pdfDoc.embedJpg(Buffer.from(b64, "base64"));
+      } else if (fs.existsSync(sigSource)) {
+        const imgBytes = fs.readFileSync(sigSource);
+        sigImage = sigSource.endsWith(".png")
+          ? await pdfDoc.embedPng(imgBytes)
+          : await pdfDoc.embedJpg(imgBytes);
+      }
+
+      if (sigImage) {
+        const sigField = template.fields.find(
+          (f) => f.fieldKey === "SIGNATURE" || f.fieldKey === "SIGNATURE_IMAGE"
+        );
+        const targetWidth = 115;
+        const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
+
+        let sigX = sigField ? sigField.x : width - targetWidth - 65;
+        let sigY = sigField ? sigField.y : 85;
+
+        if (sigField?.alignment === "center") {
+          sigX = sigField.x - targetWidth / 2;
+        } else if (sigField?.alignment === "right") {
+          sigX = sigField.x - targetWidth;
+        }
+
+        page.drawImage(sigImage, {
+          x: Math.max(10, sigX),
+          y: Math.max(10, sigY),
+          width: targetWidth,
+          height: Math.min(targetHeight, 55),
+        });
+      }
+    } catch (sigErr) {
+      console.warn("Signature embedding warning:", sigErr);
+    }
+  }
 
   return pdfDoc.save();
 }

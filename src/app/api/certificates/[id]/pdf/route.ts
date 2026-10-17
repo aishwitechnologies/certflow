@@ -78,6 +78,7 @@ export async function GET(
         height: template.height,
         orientation: template.orientation,
         backgroundUrl: template.backgroundUrl,
+        signatureUrl: template.signatureUrl,
         fields: template.fields.map((f) => ({
           fieldKey: f.fieldKey,
           label: f.label,

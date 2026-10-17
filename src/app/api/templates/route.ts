@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         width: data.orientation === "PORTRAIT" ? 595.28 : 841.89,
         height: data.orientation === "PORTRAIT" ? 841.89 : 595.28,
         backgroundUrl: data.backgroundUrl || null,
+        signatureUrl: data.signatureUrl || null,
         status: "ACTIVE",
       },
     });
