@@ -1,0 +1,325 @@
+// Prisma Schema for CertFlow Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id              String   @id @default(uuid())
+  name            String
+  code            String   @unique @default("DEFAULT")
+  logoUrl         String?
+  website         String?
+  verificationUrl String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users                User[]
+  programs             Program[]
+  certificateTemplates CertificateTemplate[]
+  candidates           Candidate[]
+  batches              CertificateBatch[]
+  certificates         Certificate[]
+  systemSettings       SystemSetting[]
+  sequences            CertificateSequence[]
+  auditLogs            AuditLog[]
+  dataSources          DataSource[]
+}
+
+model User {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String       @unique
+  name           String
+  passwordHash   String
+  role           String       @default("OPERATOR") // SUPER_ADMIN, ADMIN, OPERATOR, VIEWER
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  auditLogs   AuditLog[]
+  batches     CertificateBatch[]
+  createdById Certificate[]      @relation("CertificateRevoker")
+}
+
+model Program {
+  id                  String               @id @default(uuid())
+  organizationId      String
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  programId           String               @unique // human-readable code e.g. PROG-AI-01
+  name                String
+  description         String?
+  duration            String? // e.g. "4 Weeks", "6 Months"
+  certificateType     String               @default("INTERNSHIP") // INTERNSHIP, WORKSHOP, COURSE, PARTICIPATION
+  defaultTemplateId   String?
+  defaultTemplate     CertificateTemplate? @relation("DefaultProgramTemplate", fields: [defaultTemplateId], references: [id])
+  status              String               @default("ACTIVE") // ACTIVE, ARCHIVED
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  candidates   Candidate[]
+  certificates Certificate[]
+  batches      CertificateBatch[]
+}
+
+model CertificateTemplate {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  certificateType String      @default("INTERNSHIP")
+  description    String?
+  backgroundUrl  String?      // Background image path or base64
+  pageSize       String       @default("A4") // A4, LETTER, CUSTOM
+  orientation    String       @default("LANDSCAPE") // LANDSCAPE, PORTRAIT
+  width          Float        @default(841.89) // A4 landscape pts
+  height         Float        @default(595.28)
+  status         String       @default("ACTIVE") // ACTIVE, INACTIVE
+  version        Int          @default(1)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  versions        TemplateVersion[]
+  fields          TemplateField[]
+  programsDefault Program[]          @relation("DefaultProgramTemplate")
+  certificates    Certificate[]
+  batches         CertificateBatch[]
+}
+
+model TemplateVersion {
+  id          String              @id @default(uuid())
+  templateId  String
+  template    CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version     Int
+  layoutData  String              // JSON snapshot of layout and fields
+  notes       String?
+  createdAt   DateTime            @default(now())
+}
+
+model TemplateField {
+  id          String              @id @default(uuid())
+  templateId  String
+  template    CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fieldKey    String              // e.g. NAME, CERTIFICATE_ID, PROGRAM_NAME, ISSUE_DATE
+  label       String              // Human-readable label
+  x           Float               // X position in points
+  y           Float               // Y position in points
+  fontSize    Float               @default(18)
+  fontFamily  String              @default("Helvetica") // Helvetica, Times, Courier, Unicode-Noto
+  fontWeight  String              @default("normal") // normal, bold
+  color       String              @default("#111827") // Hex color
+  alignment   String              @default("center") // left, center, right
+  maxWidth    Float?
+  isDynamic   Boolean             @default(true)
+  staticValue String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Candidate {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String
+  phone          String?
+  college        String?
+  department     String?
+  programId      String?
+  program        Program?     @relation(fields: [programId], references: [id])
+  domain         String?
+  startDate      DateTime?
+  endDate        DateTime?
+  metadata       String?      // JSON for custom attributes
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  certificates Certificate[]
+
+  @@unique([organizationId, email, programId])
+}
+
+model DataSource {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  type           String       // EXCEL, CSV, GOOGLE_SHEET
+  configJson     String?      // Config, mapping, sheet ID
+  lastImportAt   DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  batches CertificateBatch[]
+}
+
+model GoogleSheetConnection {
+  id             String   @id @default(uuid())
+  organizationId String
+  spreadsheetId  String
+  sheetName      String
+  accessToken    String?  // encrypted / securely stored
+  refreshToken   String?
+  expiresAt      DateTime?
+  lastSyncAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CertificateBatch {
+  id             String              @id @default(uuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  programId      String
+  program        Program             @relation(fields: [programId], references: [id])
+  templateId     String
+  template       CertificateTemplate @relation(fields: [templateId], references: [id])
+  dataSourceId   String?
+  dataSource     DataSource?         @relation(fields: [dataSourceId], references: [id])
+  createdById    String?
+  createdBy      User?               @relation(fields: [createdById], references: [id])
+  batchName      String
+  totalCount     Int                 @default(0)
+  processedCount Int                 @default(0)
+  successCount   Int                 @default(0)
+  failedCount    Int                 @default(0)
+  status         String              @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED, PARTIAL
+  itemsData      String              // JSON array of candidate records to generate
+  zipPath        String?             // Path to generated ZIP file
+  errorLog       String?             // JSON array of errors encountered
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  certificates Certificate[]
+  downloads    Download[]
+}
+
+model CertificateSequence {
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  prefix          String       @default("AT")
+  periodKey       String       // e.g. "2026-10" or "GLOBAL"
+  currentSequence Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, prefix, periodKey])
+}
+
+model Certificate {
+  id              String              @id @default(uuid())
+  certificateId   String              @unique // e.g. AT-10-01
+  organizationId  String
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  candidateId     String
+  candidate       Candidate           @relation(fields: [candidateId], references: [id])
+  programId       String
+  program         Program             @relation(fields: [programId], references: [id])
+  templateId      String
+  template        CertificateTemplate @relation(fields: [templateId], references: [id])
+  batchId         String?
+  batch           CertificateBatch?   @relation(fields: [batchId], references: [id])
+  templateVersion Int                 @default(1)
+  issueDate       DateTime            @default(now())
+  startDate       DateTime?
+  endDate         DateTime?
+  candidateName   String
+  collegeName     String?
+  department      String?
+  domain          String?
+  status          String              @default("VALID") // VALID, REVOKED
+  pdfPath         String?             // Path/URL to generated PDF file
+  verificationUrl String?
+  verificationCount Int               @default(0)
+  revokedAt       DateTime?
+  revokedById     String?
+  revokedBy       User?               @relation("CertificateRevoker", fields: [revokedById], references: [id])
+  revocationReason String?
+  previousCertId  String?             // In case of regeneration
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  events           CertificateEvent[]
+  verificationLogs VerificationLog[]
+  downloads        Download[]
+
+  @@index([certificateId])
+  @@index([candidateId])
+  @@index([programId])
+  @@index([status])
+}
+
+model CertificateEvent {
+  id            String      @id @default(uuid())
+  certificateId String
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  eventType     String      // GENERATED, REGENERATED, REVOKED, DOWNLOADED, VERIFIED
+  actor         String?     // User email or "PUBLIC"
+  details       String?     // JSON metadata
+  createdAt     DateTime    @default(now())
+}
+
+model VerificationLog {
+  id            String       @id @default(uuid())
+  certificateId String?
+  certificate   Certificate? @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  searchedId    String       // Exactly what was typed by user
+  isFound       Boolean
+  status        String?      // VALID, REVOKED, NOT_FOUND
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime     @default(now())
+
+  @@index([searchedId])
+  @@index([createdAt])
+}
+
+model Download {
+  id            String            @id @default(uuid())
+  certificateId String?
+  certificate   Certificate?      @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  batchId       String?
+  batch         CertificateBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  downloadType  String            // SINGLE_PDF, BATCH_ZIP
+  downloadedBy  String?
+  createdAt     DateTime          @default(now())
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action         String       // LOGIN, LOGOUT, GENERATION_STARTED, GENERATION_COMPLETED, CERTIFICATE_REVOKED, etc.
+  entity         String       // Certificate, Template, Program, User, Setting
+  entityId       String?
+  details        String?      // JSON metadata
+  ipAddress      String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([action])
+}
+
+model SystemSetting {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String       // e.g. "ID_PREFIX", "ID_SEPARATOR", "MONTHLY_RESET", "ID_PADDING"
+  value          String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, key])
+}
