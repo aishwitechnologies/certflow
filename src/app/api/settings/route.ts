@@ -4,6 +4,8 @@ import { getOrgIdConfig, formatCertificateId } from "@/lib/id-generator";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const org = await prisma.organization.findFirst();

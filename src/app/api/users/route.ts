@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireAuth, canManageUsers, hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await requireAuth();
