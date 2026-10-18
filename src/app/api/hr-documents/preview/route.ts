@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
       signatoryTitle: body.signatoryTitle || "Director & Authorized Signatory",
       signatureUrl: body.signatureUrl || null,
       contentOverride: body.contentOverride || null,
+      templateUrl: body.templateUrl || null,
+      letterheadMode: body.letterheadMode || "STANDARD",
+      topMargin: body.topMargin !== undefined ? Number(body.topMargin) : null,
+      bottomMargin: body.bottomMargin !== undefined ? Number(body.bottomMargin) : null,
+      leftMargin: body.leftMargin !== undefined ? Number(body.leftMargin) : null,
+      rightMargin: body.rightMargin !== undefined ? Number(body.rightMargin) : null,
+      hideDefaultHeaderFooter: body.hideDefaultHeaderFooter,
+      includeSeal: body.includeSeal,
     });
 
     return new NextResponse(Buffer.from(pdfBytes), {

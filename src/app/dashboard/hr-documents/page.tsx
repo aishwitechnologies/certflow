@@ -19,6 +19,7 @@ import {
   Award,
   Layers,
   Filter,
+  Upload,
 } from "lucide-react";
 
 export default function HrDocumentsPage() {
@@ -266,7 +267,18 @@ export default function HrDocumentsPage() {
                         {doc.collegeName || doc.candidateEmail || "Aishwi Technologies"}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">{getTypeBadge(doc.documentType)}</td>
+                    <td className="py-3.5 px-4">
+                      {getTypeBadge(doc.documentType)}
+                      {doc.letterheadMode === "CUSTOM" ? (
+                        <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-medium inline-flex items-center gap-1 mt-1 block w-fit">
+                          <Upload className="w-2.5 h-2.5" /> Custom Letterhead
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-normal inline-flex items-center gap-1 mt-1 block">
+                          <Building className="w-2.5 h-2.5" /> Standard Vector
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3.5 px-4">
                       <span className="font-semibold text-slate-800 block">{doc.roleTitle}</span>
                       <span className="text-[11px] text-slate-400 block">{doc.departmentName || "Engineering"}</span>

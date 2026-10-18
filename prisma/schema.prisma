@@ -16,6 +16,10 @@ model Organization {
   logoUrl         String?
   website         String?
   verificationUrl String?
+  defaultLetterheadUrl    String?
+  defaultLetterheadMode   String?  @default("STANDARD")
+  defaultLetterheadTop    Int?     @default(120)
+  defaultLetterheadBottom Int?     @default(80)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -353,6 +357,14 @@ model HrDocument {
   signatoryName   String?      @default("Mahesh Perla")
   signatoryTitle  String?      @default("Director & Authorized Signatory")
   signatureUrl    String?
+  templateUrl     String?      // custom letterhead background image
+  letterheadMode  String?      @default("STANDARD") // STANDARD or CUSTOM
+  topMargin       Int?         @default(120) // pt from top to clear custom header
+  bottomMargin    Int?         @default(80)  // pt from bottom to clear custom footer
+  leftMargin      Int?         @default(45)
+  rightMargin     Int?         @default(45)
+  hideDefaultHeaderFooter Boolean? @default(true)
+  includeSeal     Boolean?     @default(true)
   pdfPath         String?
   notes           String?
   contentOverride String?      // custom body text if modified

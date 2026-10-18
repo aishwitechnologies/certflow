@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -19,6 +19,8 @@ import {
   Calendar,
   Layers,
   Check,
+  Sliders,
+  Settings,
 } from "lucide-react";
 
 export default function GenerateHrDocumentPage() {
@@ -39,6 +41,16 @@ export default function GenerateHrDocumentPage() {
     signatoryTitle: "Director & Authorized Signatory",
     signatureUrl: "",
     contentOverride: "",
+    // Custom Letterhead Template Settings
+    templateUrl: "",
+    letterheadMode: "STANDARD", // "STANDARD" | "CUSTOM"
+    topMargin: 120,
+    bottomMargin: 80,
+    leftMargin: 45,
+    rightMargin: 45,
+    hideDefaultHeaderFooter: true,
+    includeSeal: true,
+    saveAsDefault: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -50,6 +62,25 @@ export default function GenerateHrDocumentPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const signatureInputRef = useRef<HTMLInputElement>(null);
+  const letterheadInputRef = useRef<HTMLInputElement>(null);
+
+  // Load organization default letterhead if configured
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.organization?.defaultLetterheadUrl) {
+          setForm((prev) => ({
+            ...prev,
+            templateUrl: data.organization.defaultLetterheadUrl,
+            letterheadMode: data.organization.defaultLetterheadMode || "CUSTOM",
+            topMargin: data.organization.defaultLetterheadTop || 120,
+            bottomMargin: data.organization.defaultLetterheadBottom || 80,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Handle signature upload
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +96,30 @@ export default function GenerateHrDocumentPage() {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       setForm((prev) => ({ ...prev, signatureUrl: dataUrl }));
+      setPreviewBlob(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle custom letterhead upload
+  const handleLetterheadUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (PNG or JPG) for the letterhead template.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setForm((prev) => ({
+        ...prev,
+        templateUrl: dataUrl,
+        letterheadMode: "CUSTOM",
+      }));
+      setPreviewBlob(null);
     };
     reader.readAsDataURL(file);
   };
@@ -295,6 +350,333 @@ export default function GenerateHrDocumentPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Letterhead Template & Styling */}
+            <div className="space-y-4 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                    Letterhead Template & Design
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Choose standard corporate vector letterhead or upload your own pre-printed letterhead template.
+                  </span>
+                </div>
+                <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  {form.letterheadMode === "CUSTOM" ? "Custom Template" : "Standard Vector"}
+                </span>
+              </div>
+
+              {/* Mode Selector Tabs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm((prev) => ({ ...prev, letterheadMode: "STANDARD" }));
+                    setPreviewBlob(null);
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition flex items-start gap-3 ${
+                    form.letterheadMode === "STANDARD"
+                      ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                      : "border-slate-200 hover:border-slate-300 bg-slate-50"
+                  }`}
+                >
+                  <Building className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">
+                      Aishwi Official Vector Letterhead
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      Built-in high-resolution corporate header, logo, ribbons, address & seal.
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm((prev) => ({ ...prev, letterheadMode: "CUSTOM" }));
+                    setPreviewBlob(null);
+                    if (!form.templateUrl) {
+                      letterheadInputRef.current?.click();
+                    }
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition flex items-start gap-3 ${
+                    form.letterheadMode === "CUSTOM"
+                      ? "border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20"
+                      : "border-slate-200 hover:border-slate-300 bg-slate-50"
+                  }`}
+                >
+                  <Upload className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">
+                      Upload Custom Letterhead Template
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      Upload your company's own pre-designed letterhead (PNG / JPG A4 page).
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Custom Letterhead Upload & Margin Controls (when CUSTOM selected) */}
+              {form.letterheadMode === "CUSTOM" && (
+                <div className="p-4 rounded-2xl bg-indigo-50/40 border border-indigo-200/80 space-y-4 animate-in fade-in">
+                  <input
+                    type="file"
+                    ref={letterheadInputRef}
+                    onChange={handleLetterheadUpload}
+                    accept="image/png, image/jpeg, image/jpg"
+                    className="hidden"
+                  />
+
+                  {/* Upload Box */}
+                  {form.templateUrl ? (
+                    <div className="flex items-center gap-4 bg-white p-3.5 rounded-2xl border border-indigo-200 shadow-sm">
+                      <img
+                        src={form.templateUrl}
+                        alt="Custom Letterhead"
+                        className="w-14 h-20 object-contain rounded-lg border border-slate-200 shadow-xs bg-slate-50 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> Custom Letterhead Attached
+                        </span>
+                        <p className="text-[11px] text-slate-600 mt-0.5">
+                          Full-page A4 background template applied. Text and signatures will flow inside your custom printable area.
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => letterheadInputRef.current?.click()}
+                          className="px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-xs transition"
+                        >
+                          Change Template
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm((prev) => ({ ...prev, templateUrl: "", letterheadMode: "STANDARD" }));
+                            setPreviewBlob(null);
+                          }}
+                          className="px-3 py-1 text-xs font-semibold text-rose-600 hover:text-rose-700 transition"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => letterheadInputRef.current?.click()}
+                      className="border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-2xl p-6 text-center cursor-pointer bg-white transition hover:bg-indigo-50/40 flex flex-col items-center justify-center gap-2 group"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition">
+                        <Upload className="w-6 h-6" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">
+                        Click or drag to upload your Letterhead Template
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Supports PNG or JPG (Standard A4 ratio 595 x 842 pt recommended)
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Letterhead Margin & Spacing Alignment Controls */}
+                  <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs space-y-3">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                      Letterhead Spacing & Margin Adjuster
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Adjust top and bottom spacing so body text starts cleanly below your uploaded header artwork and stays above your footer.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      {/* Top Margin / Header Offset */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <label className="font-semibold text-slate-700">Top Header Spacing:</label>
+                          <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                            {form.topMargin} pt
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, topMargin: Math.max(40, prev.topMargin - 5) }));
+                              setPreviewBlob(null);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
+                          >
+                            -5
+                          </button>
+                          <input
+                            type="range"
+                            min={40}
+                            max={220}
+                            step={1}
+                            value={form.topMargin}
+                            onChange={(e) => {
+                              setForm({ ...form, topMargin: Number(e.target.value) });
+                              setPreviewBlob(null);
+                            }}
+                            className="flex-1 accent-indigo-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, topMargin: Math.min(220, prev.topMargin + 5) }));
+                              setPreviewBlob(null);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
+                          >
+                            +5
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bottom Margin / Footer Offset */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <label className="font-semibold text-slate-700">Bottom Footer Spacing:</label>
+                          <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                            {form.bottomMargin} pt
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, bottomMargin: Math.max(30, prev.bottomMargin - 5) }));
+                              setPreviewBlob(null);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
+                          >
+                            -5
+                          </button>
+                          <input
+                            type="range"
+                            min={30}
+                            max={180}
+                            step={1}
+                            value={form.bottomMargin}
+                            onChange={(e) => {
+                              setForm({ ...form, bottomMargin: Number(e.target.value) });
+                              setPreviewBlob(null);
+                            }}
+                            className="flex-1 accent-indigo-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, bottomMargin: Math.min(180, prev.bottomMargin + 5) }));
+                              setPreviewBlob(null);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
+                          >
+                            +5
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Left & Right Margins */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <label className="font-semibold text-slate-700">Side Margins (L / R):</label>
+                          <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                            {form.leftMargin} pt
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({
+                                ...prev,
+                                leftMargin: Math.max(25, prev.leftMargin - 5),
+                                rightMargin: Math.max(25, prev.rightMargin - 5),
+                              }));
+                              setPreviewBlob(null);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
+                          >
+                            -5
+                          </button>
+                          <input
+                            type="range"
+                            min={25}
+                            max={80}
+                            step={1}
+                            value={form.leftMargin}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setForm({ ...form, leftMargin: val, rightMargin: val });
+                              setPreviewBlob(null);
+                            }}
+                            className="flex-1 accent-indigo-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({
+                                ...prev,
+                                leftMargin: Math.min(80, prev.leftMargin + 5),
+                                rightMargin: Math.min(80, prev.rightMargin + 5),
+                              }));
+                              setPreviewBlob(null);
+                            }}
+                            className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700"
+                          >
+                            +5
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Options Checkboxes */}
+                      <div className="flex flex-col justify-center space-y-2 text-xs">
+                        <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={form.hideDefaultHeaderFooter}
+                            onChange={(e) => {
+                              setForm({ ...form, hideDefaultHeaderFooter: e.target.checked });
+                              setPreviewBlob(null);
+                            }}
+                            className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                          />
+                          <span>Hide built-in Aishwi vector header & footer</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={form.includeSeal}
+                            onChange={(e) => {
+                              setForm({ ...form, includeSeal: e.target.checked });
+                              setPreviewBlob(null);
+                            }}
+                            className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                          />
+                          <span>Include official authorized corporate seal</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer font-medium text-indigo-700">
+                          <input
+                            type="checkbox"
+                            checked={form.saveAsDefault}
+                            onChange={(e) => setForm({ ...form, saveAsDefault: e.target.checked })}
+                            className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                          />
+                          <span>Save this letterhead template as company default</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Candidate Details */}
@@ -616,16 +998,36 @@ export default function GenerateHrDocumentPage() {
                   className="w-full h-[70vh] rounded-2xl bg-white shadow-inner border border-slate-700"
                 />
               ) : (
-                <div className="bg-white text-slate-900 p-6 rounded-2xl border border-slate-200 shadow-md space-y-4 select-none min-h-[500px] flex flex-col justify-between">
-                  {/* Letterhead Top */}
-                  <div className="border-b pb-3 flex items-center gap-3">
-                    <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
-                    <div>
-                      <h4 className="font-extrabold text-sm text-[#131f47]">AISHWI TECHNOLOGIES</h4>
-                      <p className="text-[9px] text-[#b38a2e] font-bold">EMPOWERING TOMORROW, INNOVATING TODAY</p>
-                      <p className="text-[8px] text-slate-400">Hyderabad, Telangana - 500081, India</p>
+                <div
+                  className="bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-md select-none min-h-[520px] flex flex-col justify-between relative overflow-hidden bg-cover bg-center transition-all"
+                  style={{
+                    backgroundImage:
+                      form.letterheadMode === "CUSTOM" && form.templateUrl
+                        ? `url(${form.templateUrl})`
+                        : undefined,
+                    paddingTop:
+                      form.letterheadMode === "CUSTOM"
+                        ? `${Math.max(16, form.topMargin * 0.45)}px`
+                        : "24px",
+                    paddingBottom:
+                      form.letterheadMode === "CUSTOM"
+                        ? `${Math.max(16, form.bottomMargin * 0.45)}px`
+                        : "24px",
+                    paddingLeft: `${Math.max(14, form.leftMargin * 0.45)}px`,
+                    paddingRight: `${Math.max(14, form.rightMargin * 0.45)}px`,
+                  }}
+                >
+                  {/* Letterhead Top - only shown if !hideDefaultHeaderFooter */}
+                  {(!form.hideDefaultHeaderFooter || form.letterheadMode !== "CUSTOM") && (
+                    <div className="border-b pb-3 flex items-center gap-3">
+                      <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
+                      <div>
+                        <h4 className="font-extrabold text-sm text-[#131f47]">AISHWI TECHNOLOGIES</h4>
+                        <p className="text-[9px] text-[#b38a2e] font-bold">EMPOWERING TOMORROW, INNOVATING TODAY</p>
+                        <p className="text-[8px] text-slate-400">Hyderabad, Telangana - 500081, India</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2 text-[10px] text-slate-700 flex-1">
                     <div className="flex justify-between font-mono text-[9px] text-slate-500">
@@ -656,13 +1058,22 @@ export default function GenerateHrDocumentPage() {
                   </div>
 
                   {/* Signatory simulation */}
-                  <div className="pt-3 border-t text-[9px]">
-                    <p className="text-slate-500">For Aishwi Technologies,</p>
-                    {form.signatureUrl && (
-                      <img src={form.signatureUrl} alt="Signature" className="h-8 object-contain my-1" />
+                  <div className="pt-3 border-t text-[9px] flex items-end justify-between">
+                    <div>
+                      <p className="text-slate-500">For Aishwi Technologies,</p>
+                      {form.signatureUrl && (
+                        <img src={form.signatureUrl} alt="Signature" className="h-8 object-contain my-1" />
+                      )}
+                      <p className="font-bold text-slate-900">{form.signatoryName || "Mahesh Perla"}</p>
+                      <p className="text-slate-500">{form.signatoryTitle || "Authorized Signatory"}</p>
+                    </div>
+
+                    {form.includeSeal && (
+                      <div className="w-12 h-12 rounded-full border border-amber-600/40 bg-white/90 flex flex-col items-center justify-center text-[7px] font-extrabold shadow-xs">
+                        <span className="text-[#131f47]">AISHWI</span>
+                        <span className="text-[#b38a2e]">SEAL</span>
+                      </div>
                     )}
-                    <p className="font-bold text-slate-900">{form.signatoryName || "Mahesh Perla"}</p>
-                    <p className="text-slate-500">{form.signatoryTitle || "Authorized Signatory"}</p>
                   </div>
                 </div>
               )}

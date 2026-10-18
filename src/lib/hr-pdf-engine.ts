@@ -20,6 +20,14 @@ export interface HrDocumentRenderParams {
   signatoryTitle?: string | null;
   signatureUrl?: string | null;
   contentOverride?: string | null;
+  templateUrl?: string | null;
+  letterheadMode?: "STANDARD" | "CUSTOM" | string;
+  topMargin?: number | null;
+  bottomMargin?: number | null;
+  leftMargin?: number | null;
+  rightMargin?: number | null;
+  hideDefaultHeaderFooter?: boolean | null;
+  includeSeal?: boolean | null;
 }
 
 export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Promise<Uint8Array> {
@@ -43,97 +51,154 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   const muted = rgb(0.38, 0.42, 0.5);
   const lightLine = rgb(0.85, 0.88, 0.92);
 
-  // Top Decorative Border Line
-  page.drawRectangle({
-    x: 0,
-    y: height - 6,
-    width,
-    height: 6,
-    color: navy,
-  });
-  page.drawRectangle({
-    x: 0,
-    y: height - 9,
-    width,
-    height: 3,
-    color: gold,
-  });
+  const isCustomLetterhead = params.letterheadMode === "CUSTOM" && !!params.templateUrl;
+  const hideDefaultHeaderFooter =
+    params.hideDefaultHeaderFooter !== undefined && params.hideDefaultHeaderFooter !== null
+      ? params.hideDefaultHeaderFooter
+      : isCustomLetterhead;
 
-  // 1. LETTERHEAD HEADER
-  // Logo
-  let logoDrawn = false;
-  const logoPath = path.join(process.cwd(), "public", "logo.png");
-  if (fs.existsSync(logoPath)) {
+  const leftMargin = Math.max(25, Number(params.leftMargin) || 45);
+  const rightMargin = Math.max(25, Number(params.rightMargin) || 45);
+  const topMargin = Math.max(40, Number(params.topMargin) || (isCustomLetterhead ? 130 : 105));
+  const bottomMargin = Math.max(30, Number(params.bottomMargin) || 75);
+  const contentWidth = width - leftMargin - rightMargin;
+
+  // 0. EMBED CUSTOM LETTERHEAD TEMPLATE IF PROVIDED
+  if (isCustomLetterhead && params.templateUrl) {
     try {
-      const logoBytes = fs.readFileSync(logoPath);
-      const logoImg = await pdfDoc.embedPng(logoBytes);
-      const logoSize = 48;
-      page.drawImage(logoImg, {
-        x: 45,
-        y: height - 68,
-        width: logoSize,
-        height: logoSize,
-      });
-      logoDrawn = true;
-    } catch (e) {
-      console.warn("Logo embedding warning:", e);
+      let imgBytes: Uint8Array;
+      if (params.templateUrl.startsWith("data:")) {
+        const base64Data = params.templateUrl.split(",")[1];
+        imgBytes = Uint8Array.from(Buffer.from(base64Data, "base64"));
+      } else if (params.templateUrl.startsWith("http://") || params.templateUrl.startsWith("https://")) {
+        const resp = await fetch(params.templateUrl);
+        const arrayBuf = await resp.arrayBuffer();
+        imgBytes = new Uint8Array(arrayBuf);
+      } else {
+        const localPath = path.isAbsolute(params.templateUrl)
+          ? params.templateUrl
+          : path.join(process.cwd(), "public", params.templateUrl);
+        imgBytes = fs.readFileSync(localPath);
+      }
+
+      let bgImg;
+      const lower = params.templateUrl.toLowerCase();
+      if (lower.includes("image/jpeg") || lower.includes("image/jpg") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+        bgImg = await pdfDoc.embedJpg(imgBytes);
+      } else {
+        try {
+          bgImg = await pdfDoc.embedPng(imgBytes);
+        } catch {
+          bgImg = await pdfDoc.embedJpg(imgBytes);
+        }
+      }
+
+      if (bgImg) {
+        page.drawImage(bgImg, {
+          x: 0,
+          y: 0,
+          width,
+          height,
+        });
+      }
+    } catch (tmplErr) {
+      console.warn("Custom letterhead template background embedding error:", tmplErr);
     }
   }
 
-  const headerLeftX = logoDrawn ? 102 : 45;
+  // 1. BUILT-IN VECTOR HEADER (Render only if hideDefaultHeaderFooter is false)
+  if (!hideDefaultHeaderFooter) {
+    // Top Decorative Border Line
+    page.drawRectangle({
+      x: 0,
+      y: height - 6,
+      width,
+      height: 6,
+      color: navy,
+    });
+    page.drawRectangle({
+      x: 0,
+      y: height - 9,
+      width,
+      height: 3,
+      color: gold,
+    });
 
-  page.drawText("AISHWI TECHNOLOGIES", {
-    x: headerLeftX,
-    y: height - 38,
-    size: 17,
-    font: fontHelveticaBold,
-    color: navy,
-  });
+    // Logo
+    let logoDrawn = false;
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      try {
+        const logoBytes = fs.readFileSync(logoPath);
+        const logoImg = await pdfDoc.embedPng(logoBytes);
+        const logoSize = 48;
+        page.drawImage(logoImg, {
+          x: leftMargin,
+          y: height - 68,
+          width: logoSize,
+          height: logoSize,
+        });
+        logoDrawn = true;
+      } catch (e) {
+        console.warn("Logo embedding warning:", e);
+      }
+    }
 
-  page.drawText("EMPOWERING TOMORROW, INNOVATING TODAY", {
-    x: headerLeftX,
-    y: height - 50,
-    size: 7.5,
-    font: fontHelveticaBold,
-    color: gold,
-  });
+    const headerLeftX = logoDrawn ? leftMargin + 57 : leftMargin;
 
-  page.drawText("Tech Innovation Hub, Hyderabad, Telangana - 500081, India", {
-    x: headerLeftX,
-    y: height - 62,
-    size: 8,
-    font: fontHelvetica,
-    color: muted,
-  });
+    page.drawText("AISHWI TECHNOLOGIES", {
+      x: headerLeftX,
+      y: height - 38,
+      size: 17,
+      font: fontHelveticaBold,
+      color: navy,
+    });
 
-  // Right-aligned contact info in header
-  const contactText1 = "www.aishwitechnologies.com";
-  const contactText2 = "hr@aishwitechnologies.com";
-  const w1 = fontHelvetica.widthOfTextAtSize(contactText1, 8);
-  const w2 = fontHelvetica.widthOfTextAtSize(contactText2, 8);
+    page.drawText("EMPOWERING TOMORROW, INNOVATING TODAY", {
+      x: headerLeftX,
+      y: height - 50,
+      size: 7.5,
+      font: fontHelveticaBold,
+      color: gold,
+    });
 
-  page.drawText(contactText1, {
-    x: width - 45 - w1,
-    y: height - 42,
-    size: 8,
-    font: fontHelvetica,
-    color: muted,
-  });
-  page.drawText(contactText2, {
-    x: width - 45 - w2,
-    y: height - 54,
-    size: 8,
-    font: fontHelvetica,
-    color: muted,
-  });
+    page.drawText("Tech Innovation Hub, Hyderabad, Telangana - 500081, India", {
+      x: headerLeftX,
+      y: height - 62,
+      size: 8,
+      font: fontHelvetica,
+      color: muted,
+    });
 
-  // Header Divider Line
-  page.drawLine({
-    start: { x: 45, y: height - 78 },
-    end: { x: width - 45, y: height - 78 },
-    color: lightLine,
-    thickness: 1,
-  });
+    // Right-aligned contact info in header
+    const contactText1 = "www.aishwitechnologies.com";
+    const contactText2 = "hr@aishwitechnologies.com";
+    const w1 = fontHelvetica.widthOfTextAtSize(contactText1, 8);
+    const w2 = fontHelvetica.widthOfTextAtSize(contactText2, 8);
+
+    page.drawText(contactText1, {
+      x: width - rightMargin - w1,
+      y: height - 42,
+      size: 8,
+      font: fontHelvetica,
+      color: muted,
+    });
+    page.drawText(contactText2, {
+      x: width - rightMargin - w2,
+      y: height - 54,
+      size: 8,
+      font: fontHelvetica,
+      color: muted,
+    });
+
+    // Header Divider Line
+    page.drawLine({
+      start: { x: leftMargin, y: height - 78 },
+      end: { x: width - rightMargin, y: height - 78 },
+      color: lightLine,
+      thickness: 1,
+    });
+  }
 
   // Format Dates
   const formatDateStr = (d?: string | Date | null) => {
@@ -150,10 +215,10 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   const endDateFormatted = formatDateStr(params.endDate) || "Completion Date";
 
   // 2. DOCUMENT REFERENCE & DATE
-  let cursorY = height - 105;
+  let cursorY = height - topMargin;
 
   page.drawText(`Ref: ${params.documentId}`, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 9.5,
     font: fontHelveticaBold,
@@ -163,7 +228,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   const dateStr = `Date: ${issueDateFormatted}`;
   const dateStrWidth = fontHelvetica.widthOfTextAtSize(dateStr, 9.5);
   page.drawText(dateStr, {
-    x: width - 45 - dateStrWidth,
+    x: width - rightMargin - dateStrWidth,
     y: cursorY,
     size: 9.5,
     font: fontHelvetica,
@@ -174,7 +239,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   // 3. RECIPIENT DETAILS
   page.drawText("To,", {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 10,
     font: fontHelveticaBold,
@@ -183,7 +248,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   cursorY -= 14;
 
   page.drawText(params.candidateName, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 11,
     font: fontHelveticaBold,
@@ -193,7 +258,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   if (params.collegeName) {
     page.drawText(params.collegeName, {
-      x: 45,
+      x: leftMargin,
       y: cursorY,
       size: 9.5,
       font: fontHelvetica,
@@ -204,7 +269,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   if (params.department) {
     page.drawText(`Department of ${params.department}`, {
-      x: 45,
+      x: leftMargin,
       y: cursorY,
       size: 9,
       font: fontHelvetica,
@@ -215,7 +280,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   if (params.candidateEmail) {
     page.drawText(`Email: ${params.candidateEmail}`, {
-      x: 45,
+      x: leftMargin,
       y: cursorY,
       size: 8.5,
       font: fontHelvetica,
@@ -258,7 +323,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   // Heading Banner
   page.drawText(documentHeading, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 12.5,
     font: fontHelveticaBold,
@@ -267,7 +332,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   cursorY -= 16;
 
   page.drawText(subjectText, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 9.5,
     font: fontHelveticaBold,
@@ -276,8 +341,8 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   // Subject underline
   const subjectWidth = fontHelveticaBold.widthOfTextAtSize(subjectText, 9.5);
   page.drawLine({
-    start: { x: 45, y: cursorY - 2 },
-    end: { x: 45 + Math.min(subjectWidth, width - 90), y: cursorY - 2 },
+    start: { x: leftMargin, y: cursorY - 2 },
+    end: { x: leftMargin + Math.min(subjectWidth, contentWidth), y: cursorY - 2 },
     color: navy,
     thickness: 0.8,
   });
@@ -286,7 +351,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   // Salutation
   page.drawText(`Dear ${params.candidateName},`, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 10,
     font: fontHelveticaBold,
@@ -296,7 +361,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
   // Helper to draw wrapped paragraph
   const drawParagraph = (text: string, fontSize: number = 9.5, lineSpacing: number = 14) => {
-    const maxWidth = width - 90; // 45pt left and right margin
+    const maxWidth = contentWidth;
     const words = text.split(" ");
     let line = "";
 
@@ -306,7 +371,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
       if (testWidth > maxWidth) {
         page.drawText(line, {
-          x: 45,
+          x: leftMargin,
           y: cursorY,
           size: fontSize,
           font: fontHelvetica,
@@ -321,7 +386,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
     if (line) {
       page.drawText(line, {
-        x: 45,
+        x: leftMargin,
         y: cursorY,
         size: fontSize,
         font: fontHelvetica,
@@ -350,7 +415,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
     // Terms bullets
     page.drawText("Terms & Key Information:", {
-      x: 45,
+      x: leftMargin,
       y: cursorY,
       size: 9.5,
       font: fontHelveticaBold,
@@ -368,7 +433,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
     for (const b of bullets) {
       page.drawText(b, {
-        x: 55,
+        x: leftMargin + 10,
         y: cursorY,
         size: 9,
         font: fontHelvetica,
@@ -396,7 +461,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
     // Summary block
     page.drawText("Performance Assessment & Highlights:", {
-      x: 45,
+      x: leftMargin,
       y: cursorY,
       size: 9.5,
       font: fontHelveticaBold,
@@ -414,7 +479,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
 
     for (const h of highlights) {
       page.drawText(h, {
-        x: 55,
+        x: leftMargin + 10,
         y: cursorY,
         size: 9,
         font: fontHelvetica,
@@ -467,10 +532,10 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   }
 
   // 6. CLOSING & SIGNATORY BLOCK
-  cursorY = Math.max(cursorY - 10, 160);
+  cursorY = Math.max(cursorY - 10, bottomMargin + 85);
 
   page.drawText("Yours sincerely,", {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 9.5,
     font: fontHelvetica,
@@ -479,7 +544,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   cursorY -= 14;
 
   page.drawText("For AISHWI TECHNOLOGIES", {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 10,
     font: fontHelveticaBold,
@@ -512,7 +577,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
         const sigW = 110;
         const sigH = Math.min((sigImg.height / sigImg.width) * sigW, 45);
         page.drawImage(sigImg, {
-          x: 45,
+          x: leftMargin,
           y: cursorY - sigH,
           width: sigW,
           height: sigH,
@@ -532,15 +597,15 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   const signatoryTitle = params.signatoryTitle || "Director & Authorized Signatory";
 
   page.drawLine({
-    start: { x: 45, y: cursorY },
-    end: { x: 175, y: cursorY },
+    start: { x: leftMargin, y: cursorY },
+    end: { x: leftMargin + 130, y: cursorY },
     color: charcoal,
     thickness: 1,
   });
   cursorY -= 12;
 
   page.drawText(signatoryName, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 10,
     font: fontHelveticaBold,
@@ -549,7 +614,7 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   cursorY -= 12;
 
   page.drawText(signatoryTitle, {
-    x: 45,
+    x: leftMargin,
     y: cursorY,
     size: 8.5,
     font: fontHelvetica,
@@ -557,74 +622,78 @@ export async function generateHrDocumentPdf(params: HrDocumentRenderParams): Pro
   });
 
   // Official Corporate Seal Graphics
-  const sealX = width - 150;
-  const sealY = cursorY + 25;
-  page.drawCircle({
-    x: sealX + 40,
-    y: sealY,
-    size: 32,
-    borderColor: navy,
-    borderWidth: 1.5,
-    color: rgb(0.98, 0.98, 1.0),
-  });
-  page.drawCircle({
-    x: sealX + 40,
-    y: sealY,
-    size: 28,
-    borderColor: gold,
-    borderWidth: 0.8,
-  });
-  page.drawText("AISHWI", {
-    x: sealX + 26,
-    y: sealY + 4,
-    size: 7.5,
-    font: fontHelveticaBold,
-    color: navy,
-  });
-  page.drawText("SEAL", {
-    x: sealX + 30,
-    y: sealY - 6,
-    size: 7.5,
-    font: fontHelveticaBold,
-    color: gold,
-  });
+  if (params.includeSeal !== false) {
+    const sealX = width - rightMargin - 110;
+    const sealY = cursorY + 25;
+    page.drawCircle({
+      x: sealX + 40,
+      y: sealY,
+      size: 32,
+      borderColor: navy,
+      borderWidth: 1.5,
+      color: rgb(0.98, 0.98, 1.0),
+    });
+    page.drawCircle({
+      x: sealX + 40,
+      y: sealY,
+      size: 28,
+      borderColor: gold,
+      borderWidth: 0.8,
+    });
+    page.drawText("AISHWI", {
+      x: sealX + 26,
+      y: sealY + 4,
+      size: 7.5,
+      font: fontHelveticaBold,
+      color: navy,
+    });
+    page.drawText("SEAL", {
+      x: sealX + 30,
+      y: sealY - 6,
+      size: 7.5,
+      font: fontHelveticaBold,
+      color: gold,
+    });
+  }
 
   // 7. FOOTER
-  page.drawLine({
-    start: { x: 45, y: 48 },
-    end: { x: width - 45, y: 48 },
-    color: lightLine,
-    thickness: 0.8,
-  });
+  if (!hideDefaultHeaderFooter) {
+    page.drawLine({
+      start: { x: leftMargin, y: 48 },
+      end: { x: width - rightMargin, y: 48 },
+      color: lightLine,
+      thickness: 0.8,
+    });
 
-  const footerNote = "Aishwi Technologies • Corporate HR & Verified Credential Record • Anti-Tamper Authenticated";
-  const footerNoteWidth = fontHelvetica.widthOfTextAtSize(footerNote, 7.5);
-  page.drawText(footerNote, {
-    x: (width - footerNoteWidth) / 2,
-    y: 36,
-    size: 7.5,
-    font: fontHelvetica,
-    color: muted,
-  });
+    const footerNote = "Aishwi Technologies • Corporate HR & Verified Credential Record • Anti-Tamper Authenticated";
+    const footerNoteWidth = fontHelvetica.widthOfTextAtSize(footerNote, 7.5);
+    page.drawText(footerNote, {
+      x: (width - footerNoteWidth) / 2,
+      y: 36,
+      size: 7.5,
+      font: fontHelvetica,
+      color: muted,
+    });
 
-  const verifyNotice = `Verify Ref: ${params.documentId} at: https://certflow-pearl.vercel.app`;
-  const verifyNoticeWidth = fontHelvetica.widthOfTextAtSize(verifyNotice, 7.5);
-  page.drawText(verifyNotice, {
-    x: (width - verifyNoticeWidth) / 2,
-    y: 25,
-    size: 7.5,
-    font: fontHelveticaBold,
-    color: navy,
-  });
+    const verifyNotice = `Verify Ref: ${params.documentId} at: https://certflow-pearl.vercel.app`;
+    const verifyNoticeWidth = fontHelvetica.widthOfTextAtSize(verifyNotice, 7.5);
+    page.drawText(verifyNotice, {
+      x: (width - verifyNoticeWidth) / 2,
+      y: 25,
+      size: 7.5,
+      font: fontHelveticaBold,
+      color: navy,
+    });
 
-  // Bottom colored line
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width,
-    height: 4,
-    color: navy,
-  });
+    // Bottom colored line
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width,
+      height: 4,
+      color: navy,
+    });
+  }
 
   return pdfDoc.save();
 }

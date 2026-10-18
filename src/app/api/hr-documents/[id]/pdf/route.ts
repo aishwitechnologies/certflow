@@ -44,6 +44,14 @@ export async function GET(
       signatoryTitle: doc.signatoryTitle,
       signatureUrl: doc.signatureUrl,
       contentOverride: doc.contentOverride,
+      templateUrl: doc.templateUrl,
+      letterheadMode: doc.letterheadMode || "STANDARD",
+      topMargin: doc.topMargin,
+      bottomMargin: doc.bottomMargin,
+      leftMargin: doc.leftMargin,
+      rightMargin: doc.rightMargin,
+      hideDefaultHeaderFooter: doc.hideDefaultHeaderFooter,
+      includeSeal: doc.includeSeal,
     });
 
     return new NextResponse(Buffer.from(pdfBytes), {

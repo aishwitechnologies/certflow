@@ -60,6 +60,15 @@ export async function POST(req: NextRequest) {
       signatoryTitle,
       signatureUrl,
       contentOverride,
+      templateUrl,
+      letterheadMode,
+      topMargin,
+      bottomMargin,
+      leftMargin,
+      rightMargin,
+      hideDefaultHeaderFooter,
+      includeSeal,
+      saveAsDefault,
     } = body;
 
     if (!candidateName?.trim()) {
@@ -97,6 +106,11 @@ export async function POST(req: NextRequest) {
     const seqNum = String(count + 1).padStart(3, "0");
     const documentId = `AT-HR-${pfx}-${yearSuffix}-${seqNum}`;
 
+    const numTopMargin = topMargin !== undefined && topMargin !== null ? Number(topMargin) : 120;
+    const numBottomMargin = bottomMargin !== undefined && bottomMargin !== null ? Number(bottomMargin) : 80;
+    const numLeftMargin = leftMargin !== undefined && leftMargin !== null ? Number(leftMargin) : 45;
+    const numRightMargin = rightMargin !== undefined && rightMargin !== null ? Number(rightMargin) : 45;
+
     // Generate PDF
     const pdfBytes = await generateHrDocumentPdf({
       documentId,
@@ -116,6 +130,14 @@ export async function POST(req: NextRequest) {
       signatoryTitle: signatoryTitle || "Director & Authorized Signatory",
       signatureUrl: signatureUrl || null,
       contentOverride: contentOverride?.trim() || null,
+      templateUrl: templateUrl || null,
+      letterheadMode: letterheadMode || "STANDARD",
+      topMargin: numTopMargin,
+      bottomMargin: numBottomMargin,
+      leftMargin: numLeftMargin,
+      rightMargin: numRightMargin,
+      hideDefaultHeaderFooter: hideDefaultHeaderFooter ?? (letterheadMode === "CUSTOM"),
+      includeSeal: includeSeal !== false,
     });
 
     const doc = await prisma.hrDocument.create({
@@ -138,10 +160,30 @@ export async function POST(req: NextRequest) {
         signatoryName: signatoryName || "Mahesh Perla",
         signatoryTitle: signatoryTitle || "Director & Authorized Signatory",
         signatureUrl: signatureUrl || null,
+        templateUrl: templateUrl || null,
+        letterheadMode: letterheadMode || "STANDARD",
+        topMargin: numTopMargin,
+        bottomMargin: numBottomMargin,
+        leftMargin: numLeftMargin,
+        rightMargin: numRightMargin,
+        hideDefaultHeaderFooter: hideDefaultHeaderFooter ?? (letterheadMode === "CUSTOM"),
+        includeSeal: includeSeal !== false,
         pdfPath: `/api/hr-documents/${documentId}/pdf`,
         contentOverride: contentOverride?.trim() || null,
       },
     });
+
+    if (saveAsDefault && templateUrl) {
+      await prisma.organization.update({
+        where: { id: orgId },
+        data: {
+          defaultLetterheadUrl: templateUrl,
+          defaultLetterheadMode: letterheadMode || "CUSTOM",
+          defaultLetterheadTop: numTopMargin,
+          defaultLetterheadBottom: numBottomMargin,
+        },
+      }).catch((e) => console.warn("Failed to update organization default letterhead:", e));
+    }
 
     await logAudit({
       organizationId: orgId,
