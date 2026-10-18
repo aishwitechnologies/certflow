@@ -50,60 +50,34 @@ async function main() {
     });
   }
 
-  // 3. Create Default Users (Super Admin, Operator, Viewer)
-  const adminPasswordHash = await bcrypt.hash("Admin@123456", 10);
-  const operatorPasswordHash = await bcrypt.hash("Operator@123456", 10);
-  const viewerPasswordHash = await bcrypt.hash("Viewer@123456", 10);
+  // 3. Create Authorized Super Admins
+  const superAdminPasswordHash = await bcrypt.hash("Aishwi@2021", 10);
 
-  // Aishwi Technologies Official Accounts
-  await prisma.user.upsert({
-    where: { email: "admin@aishwitechnologies.com" },
-    update: { passwordHash: adminPasswordHash, role: "SUPER_ADMIN", name: "Aishwi Super Admin" },
-    create: {
-      organizationId: org.id,
-      name: "Aishwi Super Admin",
-      email: "admin@aishwitechnologies.com",
-      passwordHash: adminPasswordHash,
-      role: "SUPER_ADMIN",
-    },
-  });
+  const superAdmins = [
+    { name: "Mahesh Perla", email: "mahesh.perla@aishwitech.in" },
+    { name: "Ganesh", email: "ganesh@aishwitech.in" },
+    { name: "Ruthvik Sonti", email: "ruthvik.sonti@aishwitech.in" },
+  ];
 
-  await prisma.user.upsert({
-    where: { email: "operator@aishwitechnologies.com" },
-    update: { passwordHash: operatorPasswordHash, role: "OPERATOR", name: "Aishwi Operations" },
-    create: {
-      organizationId: org.id,
-      name: "Aishwi Operations",
-      email: "operator@aishwitechnologies.com",
-      passwordHash: operatorPasswordHash,
-      role: "OPERATOR",
-    },
-  });
-
-  await prisma.user.upsert({
-    where: { email: "viewer@aishwitechnologies.com" },
-    update: { passwordHash: viewerPasswordHash, role: "VIEWER", name: "Aishwi Auditor" },
-    create: {
-      organizationId: org.id,
-      name: "Aishwi Auditor",
-      email: "viewer@aishwitechnologies.com",
-      passwordHash: viewerPasswordHash,
-      role: "VIEWER",
-    },
-  });
-
-  // Backward-compatible fallback accounts
-  await prisma.user.upsert({
-    where: { email: "admin@certflow.com" },
-    update: { passwordHash: adminPasswordHash, role: "SUPER_ADMIN" },
-    create: {
-      organizationId: org.id,
-      name: "Admin User",
-      email: "admin@certflow.com",
-      passwordHash: adminPasswordHash,
-      role: "SUPER_ADMIN",
-    },
-  });
+  for (const admin of superAdmins) {
+    await prisma.user.upsert({
+      where: { email: admin.email },
+      update: {
+        name: admin.name,
+        passwordHash: superAdminPasswordHash,
+        role: "SUPER_ADMIN",
+        isActive: true,
+      },
+      create: {
+        organizationId: org.id,
+        name: admin.name,
+        email: admin.email,
+        passwordHash: superAdminPasswordHash,
+        role: "SUPER_ADMIN",
+        isActive: true,
+      },
+    });
+  }
 
   // 4. Create Standard Certificate Template
   let template = await prisma.certificateTemplate.findFirst({

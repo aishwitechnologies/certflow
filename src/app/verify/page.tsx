@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Search, Award, CheckCircle2, AlertTriangle, XCircle, Download } from "lucide-react";
+import { ShieldCheck, Search, Award, CheckCircle2, AlertTriangle, XCircle, Download, Eye } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 export default function PublicVerifyPage() {
@@ -155,13 +155,20 @@ export default function PublicVerifyPage() {
               </div>
 
               {result.pdfPath && (
-                <div className="mt-6 pt-4 border-t border-emerald-900/60 text-center">
+                <div className="mt-6 pt-4 border-t border-emerald-900/60 flex flex-wrap items-center justify-center gap-3">
                   <a
-                    href={result.pdfPath}
-                    target="_blank"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition"
+                    href={`/api/certificates/${result.certificateId}/pdf?download=true`}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 transition"
                   >
                     <Download className="w-4 h-4" /> Download Certificate PDF
+                  </a>
+                  <a
+                    href={`/api/certificates/${result.certificateId}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs border border-slate-700 transition"
+                  >
+                    <Eye className="w-4 h-4 text-indigo-400" /> View Document
                   </a>
                 </div>
               )}

@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { verifyPassword, signToken, AUTH_COOKIE_NAME, Role } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
+const ALLOWED_SUPERADMIN_EMAILS = [
+  "mahesh.perla@aishwitech.in",
+  "ganesh@aishwitech.in",
+  "ruthvik.sonti@aishwitech.in",
+];
+
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
@@ -14,8 +20,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!ALLOWED_SUPERADMIN_EMAILS.includes(normalizedEmail)) {
+      return NextResponse.json(
+        { error: "Access restricted. Only authorized Aishwi Technologies Super Admins can log in." },
+        { status: 403 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: normalizedEmail },
       include: { organization: true },
     });
 

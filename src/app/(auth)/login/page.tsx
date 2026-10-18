@@ -87,7 +87,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                  placeholder="admin@aishwitechnologies.com"
+                  placeholder="mahesh.perla@aishwitech.in"
                 />
               </div>
             </div>
@@ -126,32 +126,32 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick-fill Demo Accounts */}
+          {/* Quick-fill Super Admin Accounts */}
           <div className="mt-8 pt-6 border-t border-slate-700">
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center mb-3">
-              One-Click Demo Credentials
+              Authorized Super Admins (One-Click)
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => fillCredentials("admin@aishwitechnologies.com", "Admin@123456")}
-                className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600 font-medium transition text-center"
+                onClick={() => fillCredentials("mahesh.perla@aishwitech.in", "Aishwi@2021")}
+                className="py-2 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded-xl border border-slate-600 font-medium transition text-center"
               >
-                Super Admin
+                Mahesh Perla
               </button>
               <button
                 type="button"
-                onClick={() => fillCredentials("operator@aishwitechnologies.com", "Operator@123456")}
-                className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600 font-medium transition text-center"
+                onClick={() => fillCredentials("ganesh@aishwitech.in", "Aishwi@2021")}
+                className="py-2 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded-xl border border-slate-600 font-medium transition text-center"
               >
-                Operator
+                Ganesh
               </button>
               <button
                 type="button"
-                onClick={() => fillCredentials("viewer@aishwitechnologies.com", "Viewer@123456")}
-                className="py-1.5 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-600 font-medium transition text-center"
+                onClick={() => fillCredentials("ruthvik.sonti@aishwitech.in", "Aishwi@2021")}
+                className="py-2 px-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs rounded-xl border border-slate-600 font-medium transition text-center"
               >
-                Viewer
+                Ruthvik Sonti
               </button>
             </div>
           </div>
@@ -159,10 +159,10 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <a
-            href="/verify"
+            href="/"
             className="text-xs text-indigo-400 hover:text-indigo-300 font-medium inline-flex items-center gap-1.5"
           >
-            <ShieldCheck className="w-4 h-4" /> Go to Public Certificate Verification Portal
+            <ShieldCheck className="w-4 h-4" /> Go to Verification & Download Portal
           </a>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ShieldCheck, Award, CheckCircle2, AlertTriangle, XCircle, Download, ArrowLeft } from "lucide-react";
+import { ShieldCheck, Award, CheckCircle2, AlertTriangle, XCircle, Download, ArrowLeft, Eye } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
@@ -116,13 +116,20 @@ export default function DirectVerifyPage() {
               </div>
 
               {result.pdfPath && (
-                <div className="mt-8 pt-6 border-t border-slate-700/60 text-center">
+                <div className="mt-8 pt-6 border-t border-slate-700/60 flex flex-wrap items-center justify-center gap-3">
                   <a
-                    href={result.pdfPath}
-                    target="_blank"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition"
+                    href={`/api/certificates/${result.certificateId}/pdf?download=true`}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-600/30 transition"
                   >
                     <Download className="w-4 h-4" /> Download Certificate PDF
+                  </a>
+                  <a
+                    href={`/api/certificates/${result.certificateId}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-sm border border-slate-700 transition"
+                  >
+                    <Eye className="w-4 h-4 text-indigo-400" /> View Document
                   </a>
                 </div>
               )}
