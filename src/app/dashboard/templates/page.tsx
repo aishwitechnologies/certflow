@@ -124,6 +124,12 @@ export default function TemplatesPage() {
   const [orientation, setOrientation] = useState<"LANDSCAPE" | "PORTRAIT">("LANDSCAPE");
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+  const [signatureX, setSignatureX] = useState<number>(660);
+  const [signatureY, setSignatureY] = useState<number>(85);
+  const [signatureWidth, setSignatureWidth] = useState<number>(115);
+  const [signatureAlignment, setSignatureAlignment] = useState<"left" | "center" | "right">("center");
+  const [signatoryTitle, setSignatoryTitle] = useState<string>("Authorized Signatory");
+  const [signatoryName, setSignatoryName] = useState<string>("Mahesh Perla");
   const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
   const [selectedFieldIndex, setSelectedFieldIndex] = useState<number>(0);
   const [saving, setSaving] = useState(false);
@@ -163,6 +169,12 @@ export default function TemplatesPage() {
     setOrientation("LANDSCAPE");
     setBackgroundUrl(null);
     setSignatureUrl(null);
+    setSignatureX(660);
+    setSignatureY(85);
+    setSignatureWidth(115);
+    setSignatureAlignment("center");
+    setSignatoryTitle("Authorized Signatory");
+    setSignatoryName("Mahesh Perla");
     setFields(JSON.parse(JSON.stringify(DEFAULT_FIELDS)));
     setSelectedFieldIndex(0);
     setPdfPreviewBlob(null);
@@ -178,6 +190,12 @@ export default function TemplatesPage() {
     setOrientation(tmpl.orientation || "LANDSCAPE");
     setBackgroundUrl(tmpl.backgroundUrl || null);
     setSignatureUrl(tmpl.signatureUrl || null);
+    setSignatureX(tmpl.signatureX ?? (tmpl.orientation === "PORTRAIT" ? 450 : 660));
+    setSignatureY(tmpl.signatureY ?? 85);
+    setSignatureWidth(tmpl.signatureWidth ?? 115);
+    setSignatureAlignment(tmpl.signatureAlignment || "center");
+    setSignatoryTitle(tmpl.signatoryTitle || "Authorized Signatory");
+    setSignatoryName(tmpl.signatoryName || "Mahesh Perla");
     if (tmpl.fields && tmpl.fields.length > 0) {
       setFields(
         tmpl.fields.map((f: any) => ({
@@ -288,6 +306,12 @@ export default function TemplatesPage() {
             orientation,
             backgroundUrl,
             signatureUrl,
+            signatureX,
+            signatureY,
+            signatureWidth,
+            signatureAlignment,
+            signatoryTitle,
+            signatoryName,
             fields,
           },
           candidateData: {
@@ -332,6 +356,12 @@ export default function TemplatesPage() {
         orientation,
         backgroundUrl,
         signatureUrl,
+        signatureX,
+        signatureY,
+        signatureWidth,
+        signatureAlignment,
+        signatoryTitle,
+        signatoryName,
         fields,
       };
 
@@ -587,11 +617,11 @@ export default function TemplatesPage() {
                   )}
                 </div>
 
-                {/* 3. Upload Authorized Signature */}
+                {/* 3. Upload Authorized Signature & Aligner */}
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <PenTool className="w-4 h-4 text-indigo-600" /> Authorized Sign
+                      <PenTool className="w-4 h-4 text-indigo-600" /> Authorized Sign & Aligner
                     </h3>
                     {signatureUrl && (
                       <button
@@ -613,31 +643,212 @@ export default function TemplatesPage() {
                   />
 
                   {signatureUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-300 bg-white p-3 flex flex-col items-center justify-center group">
-                      <img
-                        src={signatureUrl}
-                        alt="Authorized Signature"
-                        className="h-14 max-w-full object-contain"
-                      />
-                      <div className="w-28 border-t border-slate-400 mt-2" />
-                      <span className="text-[10px] text-slate-500 font-medium uppercase mt-0.5">
-                        Authorized Signatory
-                      </span>
-                      <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition rounded-xl">
-                        <button
-                          type="button"
-                          onClick={() => signatureInputRef.current?.click()}
-                          className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-semibold shadow"
-                        >
-                          Change Signature
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSignatureUrl(null)}
-                          className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold shadow"
-                        >
-                          Remove
-                        </button>
+                    <div className="space-y-3">
+                      <div className="relative rounded-xl overflow-hidden border border-slate-300 bg-white p-3 flex flex-col items-center justify-center group">
+                        <img
+                          src={signatureUrl}
+                          alt="Authorized Signature"
+                          className="h-12 max-w-full object-contain"
+                        />
+                        <div className="w-28 border-t border-slate-400 mt-2" />
+                        <span className="text-[10px] text-slate-700 font-bold mt-0.5">
+                          {signatoryName || "Mahesh Perla"}
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-medium uppercase">
+                          {signatoryTitle || "Authorized Signatory"}
+                        </span>
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => signatureInputRef.current?.click()}
+                            className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-semibold shadow"
+                          >
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSignatureUrl(null)}
+                            className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold shadow"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* SIGNATURE ALIGNER & POSITION CONTROLS */}
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-3 text-xs">
+                        <span className="font-bold text-slate-800 uppercase tracking-wider text-[10px] block">
+                          Signature Alignment & Position
+                        </span>
+
+                        {/* Alignment Buttons */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 text-[11px] font-medium">Text Aligner:</span>
+                          <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => setSignatureAlignment("left")}
+                              className={`p-1 px-2 rounded text-[10px] font-semibold transition ${
+                                signatureAlignment === "left"
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "text-slate-600 hover:text-slate-900"
+                              }`}
+                            >
+                              Left
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureAlignment("center")}
+                              className={`p-1 px-2 rounded text-[10px] font-semibold transition ${
+                                signatureAlignment === "center"
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "text-slate-600 hover:text-slate-900"
+                              }`}
+                            >
+                              Center
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureAlignment("right")}
+                              className={`p-1 px-2 rounded text-[10px] font-semibold transition ${
+                                signatureAlignment === "right"
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "text-slate-600 hover:text-slate-900"
+                              }`}
+                            >
+                              Right
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Horizontal X Slider */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] text-slate-600">
+                            <span>Horizontal (X)</span>
+                            <span className="font-mono text-indigo-600 font-bold">{Math.round(signatureX)} pt</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="40"
+                            max={Math.round(canvasWidth - 40)}
+                            value={signatureX}
+                            onChange={(e) => setSignatureX(parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                          />
+                          <div className="flex justify-between gap-1 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => setSignatureX(Math.max(40, signatureX - 5))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              -5 pt
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureX(Math.round(canvasWidth / 2))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              Center
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureX(canvasWidth - 160)}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              Default
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureX(Math.min(canvasWidth - 40, signatureX + 5))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              +5 pt
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Vertical Y Slider */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] text-slate-600">
+                            <span>Vertical (Y)</span>
+                            <span className="font-mono text-indigo-600 font-bold">{Math.round(signatureY)} pt</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="30"
+                            max={Math.round(canvasHeight - 60)}
+                            value={signatureY}
+                            onChange={(e) => setSignatureY(parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                          />
+                          <div className="flex justify-between gap-1 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => setSignatureY(Math.max(30, signatureY - 5))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              -5 pt
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureY(85)}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              Default (85pt)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSignatureY(Math.min(canvasHeight - 60, signatureY + 5))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700"
+                            >
+                              +5 pt
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Signature Width Slider */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] text-slate-600">
+                            <span>Signature Size / Width</span>
+                            <span className="font-mono text-indigo-600 font-bold">{Math.round(signatureWidth)} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="60"
+                            max="200"
+                            value={signatureWidth}
+                            onChange={(e) => setSignatureWidth(parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                          />
+                        </div>
+
+                        {/* Designation & Signatory Name inputs */}
+                        <div className="space-y-2 pt-1 border-t border-slate-100">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                              Signatory Name
+                            </label>
+                            <input
+                              type="text"
+                              value={signatoryName}
+                              onChange={(e) => setSignatoryName(e.target.value)}
+                              placeholder="e.g. Mahesh Perla"
+                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                              Signatory Designation / Title
+                            </label>
+                            <input
+                              type="text"
+                              value={signatoryTitle}
+                              onChange={(e) => setSignatoryTitle(e.target.value)}
+                              placeholder="e.g. Authorized Signatory / Director"
+                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -648,7 +859,7 @@ export default function TemplatesPage() {
                       <PenTool className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
                       <p className="text-xs font-bold text-slate-700">Upload Authorized Signature</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        PNG or JPG (transparent background recommended). Will render on certificate.
+                        PNG or JPG (transparent background recommended). Position and align anywhere on the certificate.
                       </p>
                     </div>
                   )}
@@ -1017,24 +1228,49 @@ export default function TemplatesPage() {
                       );
                     })}
 
-                    {/* Render Signature if uploaded */}
+                    {/* Render Signature if uploaded with live aligner coordinates */}
                     {signatureUrl && (
                       <div
-                        className="absolute z-20 pointer-events-none flex flex-col items-center"
+                        className="absolute z-20 pointer-events-none flex flex-col"
                         style={{
-                          bottom: "12%",
-                          right: "8%",
-                          width: "120px",
+                          top: `${((canvasHeight - signatureY) / canvasHeight) * 100}%`,
+                          left: `${(signatureX / canvasWidth) * 100}%`,
+                          transform:
+                            signatureAlignment === "left"
+                              ? "translate(0%, -100%)"
+                              : signatureAlignment === "right"
+                              ? "translate(-100%, -100%)"
+                              : "translate(-50%, -100%)",
+                          width: `${signatureWidth}px`,
+                          alignItems:
+                            signatureAlignment === "left"
+                              ? "flex-start"
+                              : signatureAlignment === "right"
+                              ? "flex-end"
+                              : "center",
+                          textAlign: signatureAlignment,
                         }}
                       >
                         <img
                           src={signatureUrl}
                           alt="Authorized Signature"
-                          className="max-h-12 max-w-[120px] object-contain drop-shadow"
+                          style={{
+                            maxWidth: `${signatureWidth}px`,
+                            maxHeight: "55px",
+                          }}
+                          className="object-contain drop-shadow"
                         />
-                        <div className="w-24 border-t border-slate-700 mt-1" />
-                        <span className="text-[8px] font-bold text-slate-700 tracking-wider uppercase mt-0.5">
-                          Authorized Signatory
+                        <div
+                          className="border-t border-slate-700 mt-1"
+                          style={{ width: `${signatureWidth}px` }}
+                        />
+                        {signatoryName && (
+                          <span className="text-[8px] font-bold text-slate-800 tracking-wide mt-0.5">
+                            {signatoryName}
+                          </span>
+                        )}
+                        <span className="text-[7.5px] font-semibold text-slate-600 tracking-wider uppercase mt-0.5">
+                          {signatoryTitle || "Authorized Signatory"}
                         </span>
                       </div>
                     )}

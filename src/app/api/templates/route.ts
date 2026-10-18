@@ -47,6 +47,12 @@ export async function POST(req: NextRequest) {
         height: data.orientation === "PORTRAIT" ? 841.89 : 595.28,
         backgroundUrl: data.backgroundUrl || null,
         signatureUrl: data.signatureUrl || null,
+        signatureX: data.signatureX !== undefined ? parseFloat(data.signatureX) : 660,
+        signatureY: data.signatureY !== undefined ? parseFloat(data.signatureY) : 85,
+        signatureWidth: data.signatureWidth !== undefined ? parseFloat(data.signatureWidth) : 115,
+        signatureAlignment: data.signatureAlignment || "center",
+        signatoryTitle: data.signatoryTitle || "Authorized Signatory",
+        signatoryName: data.signatoryName || "",
         status: "ACTIVE",
       },
     });

@@ -43,6 +43,12 @@ export async function POST(req: NextRequest) {
         orientation: template.orientation || "LANDSCAPE",
         backgroundUrl: template.backgroundUrl || null,
         signatureUrl: candidateData?.signatureUrl || template.signatureUrl || null,
+        signatureX: template.signatureX,
+        signatureY: template.signatureY,
+        signatureWidth: template.signatureWidth,
+        signatureAlignment: template.signatureAlignment,
+        signatoryTitle: template.signatoryTitle,
+        signatoryName: template.signatoryName,
         fields: (template.fields || []).map((f: any) => ({
           fieldKey: f.fieldKey,
           label: f.label,

@@ -242,7 +242,7 @@ export default function HomePage() {
                 type="text"
                 value={certId}
                 onChange={(e) => setCertId(e.target.value)}
-                placeholder="Enter Certificate ID (e.g. AT-10-01)"
+                placeholder="Enter Certificate or HR Document ID (e.g. AT-10-01 or AT-HR-OL-26-001)"
                 required
                 className="w-full pl-12 pr-4 py-3.5 bg-transparent text-white placeholder-slate-500 font-mono text-sm sm:text-base focus:outline-none"
               />
@@ -267,14 +267,22 @@ export default function HomePage() {
           </form>
 
           {/* Quick Demo Pill */}
-          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-slate-500">
-            <span>Try sample ID:</span>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500">
+            <span>Try sample credentials:</span>
             <button
               type="button"
               onClick={() => handleQuickSearch("AT-10-01")}
               className="font-mono text-indigo-400 hover:text-indigo-300 underline font-semibold transition"
             >
-              AT-10-01
+              AT-10-01 (Certificate)
+            </button>
+            <span className="text-slate-600">•</span>
+            <button
+              type="button"
+              onClick={() => handleQuickSearch("AT-HR-OL-26-001")}
+              className="font-mono text-indigo-400 hover:text-indigo-300 underline font-semibold transition"
+            >
+              AT-HR-OL-26-001 (Offer Letter)
             </button>
           </div>
         </div>
@@ -312,9 +320,10 @@ export default function HomePage() {
               </div>
 
               {/* Status Pill */}
+              {/* Status Pill */}
               <div className="text-right sm:text-right">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Certificate ID
+                  {result.isHrDocument ? (result.documentTypeLabel || "HR Document ID") : "Certificate ID"}
                 </span>
                 <span className="font-mono font-extrabold text-indigo-400 text-lg sm:text-xl block">
                   {result.certificateId}
@@ -326,7 +335,12 @@ export default function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
               <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/50 space-y-1">
                 <span className="text-slate-400 text-xs block flex items-center gap-1.5">
-                  <GraduationCap className="w-3.5 h-3.5 text-indigo-400" /> Program / Course
+                  {result.isHrDocument ? (
+                    <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                  ) : (
+                    <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                  )}
+                  {result.isHrDocument ? "Role & Department" : "Program / Course"}
                 </span>
                 <span className="font-bold text-white text-base block">{result.programName}</span>
               </div>
@@ -364,10 +378,10 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-2">
                 {/* Instant Download Button */}
                 <a
-                  href={`/api/certificates/${result.certificateId}/pdf?download=true`}
+                  href={result.pdfDownloadUrl || `/api/certificates/${result.certificateId}/pdf?download=true`}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 transition"
                 >
-                  <Download className="w-4 h-4" /> Download Certificate (PDF)
+                  <Download className="w-4 h-4" /> Download {result.isHrDocument ? "Official Letter" : "Certificate"} (PDF)
                 </a>
 
                 {/* View Official Document */}
@@ -377,7 +391,7 @@ export default function HomePage() {
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm border border-slate-700 transition"
                 >
                   <Eye className="w-4 h-4 text-indigo-400" />
-                  {showPreviewModal ? "Hide Document" : "View Certificate"}
+                  {showPreviewModal ? "Hide Document" : `View ${result.isHrDocument ? "Letter" : "Certificate"}`}
                 </button>
               </div>
 
@@ -403,9 +417,9 @@ export default function HomePage() {
             {showPreviewModal && (
               <div className="pt-4 border-t border-slate-800 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between mb-3 text-xs text-slate-400">
-                  <span>Official Vector Certificate Document:</span>
+                  <span>Official Vector {result.isHrDocument ? "Letterhead Document" : "Certificate"}:</span>
                   <a
-                    href={`/api/certificates/${result.certificateId}/pdf`}
+                    href={result.pdfViewUrl || `/api/certificates/${result.certificateId}/pdf`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-indigo-400 hover:underline flex items-center gap-1"
@@ -414,8 +428,8 @@ export default function HomePage() {
                   </a>
                 </div>
                 <iframe
-                  src={`/api/certificates/${result.certificateId}/pdf`}
-                  title="Official Certificate Document"
+                  src={result.pdfViewUrl || `/api/certificates/${result.certificateId}/pdf`}
+                  title="Official Document Preview"
                   className="w-full h-[55vh] rounded-2xl border border-slate-700 bg-white shadow-inner"
                 />
               </div>

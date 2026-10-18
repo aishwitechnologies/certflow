@@ -24,6 +24,12 @@ export interface RenderCertificateParams {
     orientation: string;
     backgroundUrl?: string | null;
     signatureUrl?: string | null;
+    signatureX?: number | null;
+    signatureY?: number | null;
+    signatureWidth?: number | null;
+    signatureAlignment?: "left" | "center" | "right" | string | null;
+    signatoryTitle?: string | null;
+    signatoryName?: string | null;
     fields: CertificateFieldData[];
   };
   data: {
@@ -345,24 +351,77 @@ export async function generateCertificatePdf(params: RenderCertificateParams): P
         const sigField = template.fields.find(
           (f) => f.fieldKey === "SIGNATURE" || f.fieldKey === "SIGNATURE_IMAGE"
         );
-        const targetWidth = 115;
-        const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
+        const targetWidth = template.signatureWidth || 115;
+        const targetHeight = Math.min((sigImage.height / sigImage.width) * targetWidth, 60);
 
-        let sigX = sigField ? sigField.x : width - targetWidth - 65;
-        let sigY = sigField ? sigField.y : 85;
+        const align = template.signatureAlignment || sigField?.alignment || "center";
+        let baseCoordX =
+          template.signatureX !== undefined && template.signatureX !== null
+            ? template.signatureX
+            : sigField
+            ? sigField.x
+            : width - targetWidth - 65;
+        let sigY =
+          template.signatureY !== undefined && template.signatureY !== null
+            ? template.signatureY
+            : sigField
+            ? sigField.y
+            : 85;
 
-        if (sigField?.alignment === "center") {
-          sigX = sigField.x - targetWidth / 2;
-        } else if (sigField?.alignment === "right") {
-          sigX = sigField.x - targetWidth;
+        let sigX = baseCoordX;
+        if (align === "center") {
+          sigX = baseCoordX - targetWidth / 2;
+        } else if (align === "right") {
+          sigX = baseCoordX - targetWidth;
         }
 
         page.drawImage(sigImage, {
           x: Math.max(10, sigX),
           y: Math.max(10, sigY),
           width: targetWidth,
-          height: Math.min(targetHeight, 55),
+          height: targetHeight,
         });
+
+        // Decorative line & designation
+        const sigTitle = template.signatoryTitle || "Authorized Signatory";
+        const sigName = template.signatoryName || "";
+
+        page.drawLine({
+          start: { x: Math.max(10, sigX), y: sigY - 4 },
+          end: { x: Math.max(10, sigX) + targetWidth, y: sigY - 4 },
+          color: rgb(0.2, 0.25, 0.35),
+          thickness: 1,
+        });
+
+        let textOffsetY = sigY - 14;
+        if (sigName) {
+          const nameWidth = fontHelveticaBold.widthOfTextAtSize(sigName, 9.5);
+          let nameX = sigX;
+          if (align === "center") nameX = sigX + (targetWidth - nameWidth) / 2;
+          else if (align === "right") nameX = sigX + targetWidth - nameWidth;
+          page.drawText(sigName, {
+            x: Math.max(10, nameX),
+            y: textOffsetY,
+            size: 9.5,
+            font: fontHelveticaBold,
+            color: rgb(0.1, 0.15, 0.25),
+          });
+          textOffsetY -= 11;
+        }
+
+        if (sigTitle) {
+          const titleWidth = fontHelvetica.widthOfTextAtSize(sigTitle, 8.5);
+          let titleX = sigX;
+          if (align === "center") titleX = sigX + (targetWidth - titleWidth) / 2;
+          else if (align === "right") titleX = sigX + targetWidth - titleWidth;
+          page.drawText(sigTitle, {
+            x: Math.max(10, titleX),
+            y: textOffsetY,
+            size: 8.5,
+            font: fontHelvetica,
+            color: rgb(0.35, 0.4, 0.5),
+          });
+        }
       }
     } catch (sigErr) {
       console.warn("Signature embedding warning:", sigErr);

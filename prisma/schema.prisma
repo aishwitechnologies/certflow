@@ -29,6 +29,7 @@ model Organization {
   sequences            CertificateSequence[]
   auditLogs            AuditLog[]
   dataSources          DataSource[]
+  hrDocuments          HrDocument[]
 }
 
 model User {
@@ -69,22 +70,28 @@ model Program {
 }
 
 model CertificateTemplate {
-  id             String       @id @default(uuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  certificateType String      @default("INTERNSHIP")
-  description    String?
-  backgroundUrl  String?      // Background image path or base64
-  signatureUrl   String?      // Signature image path or base64
-  pageSize       String       @default("A4") // A4, LETTER, CUSTOM
-  orientation    String       @default("LANDSCAPE") // LANDSCAPE, PORTRAIT
-  width          Float        @default(841.89) // A4 landscape pts
-  height         Float        @default(595.28)
-  status         String       @default("ACTIVE") // ACTIVE, INACTIVE
-  version        Int          @default(1)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                 String       @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name               String
+  certificateType    String       @default("INTERNSHIP")
+  description        String?
+  backgroundUrl      String?      // Background image path or base64
+  signatureUrl       String?      // Signature image path or base64
+  signatureX         Float?       @default(660)
+  signatureY         Float?       @default(85)
+  signatureWidth     Float?       @default(115)
+  signatureAlignment String?      @default("center")
+  signatoryTitle     String?      @default("Authorized Signatory")
+  signatoryName      String?      @default("")
+  pageSize           String       @default("A4") // A4, LETTER, CUSTOM
+  orientation        String       @default("LANDSCAPE") // LANDSCAPE, PORTRAIT
+  width              Float        @default(841.89) // A4 landscape pts
+  height             Float        @default(595.28)
+  status             String       @default("ACTIVE") // ACTIVE, INACTIVE
+  version            Int          @default(1)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   versions        TemplateVersion[]
   fields          TemplateField[]
@@ -324,3 +331,49 @@ model SystemSetting {
 
   @@unique([organizationId, key])
 }
+
+model HrDocument {
+  id              String       @id @default(uuid())
+  documentId      String       @unique // e.g. AT/HR/OL/2026/01
+  documentType    String       // OFFER_LETTER, COMPLETION_LETTER, EXPERIENCE_LETTER, RELIEVING_LETTER, LOR
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  candidateName   String
+  candidateEmail  String?
+  candidatePhone  String?
+  collegeName     String?
+  department      String?
+  roleTitle       String       // e.g. "Artificial Intelligence Research Intern"
+  departmentName  String?      // e.g. "Software Engineering & AI Division"
+  stipend         String?      // e.g. "Performance Based" or "₹15,000 / month"
+  startDate       DateTime?
+  endDate         DateTime?
+  issueDate       DateTime     @default(now())
+  status          String       @default("VALID") // VALID, REVOKED
+  signatoryName   String?      @default("Mahesh Perla")
+  signatoryTitle  String?      @default("Director & Authorized Signatory")
+  signatureUrl    String?
+  pdfPath         String?
+  notes           String?
+  contentOverride String?      // custom body text if modified
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  verificationLogs HrDocumentVerificationLog[]
+
+  @@index([organizationId, documentType])
+  @@index([candidateName])
+}
+
+model HrDocumentVerificationLog {
+  id            String      @id @default(uuid())
+  documentId    String
+  document      HrDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  searchedId    String
+  ipAddress     String?
+  userAgent     String?
+  verifiedAt    DateTime    @default(now())
+
+  @@index([documentId])
+}
+
